@@ -10,7 +10,7 @@ pub struct ClassFile {
     interfaces: Vec<u16>,
     fields: Vec<Field>,
     methods: Vec<Method>,
-    attributes: Vector<Attribute>
+    attributes: Vec<Attribute>
 }
 
 pub struct ConstantPoolInfo {
@@ -105,7 +105,7 @@ pub enum Attribute {
         max_stack: u16,
         max_locals: u16,
         code_length: u32,
-        code: Vec<u1>,
+        code: Vec<u8>,
         exceptions: Vec<ExceptionTableEntry>,
         attributes: Vec<Attribute>
     },
