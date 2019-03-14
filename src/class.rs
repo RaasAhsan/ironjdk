@@ -1,4 +1,6 @@
 
+// Low-level representations of a ClassFile
+
 pub struct ClassFile {
     magic: u32,
     minor_version: u16,
@@ -35,8 +37,14 @@ pub enum ConstantPoolTag {
     InvokeDynamic
 }
 
+impl ConstantPoolTag {
+
+}
+
 // High
+#[derive(Debug)]
 pub enum ConstantPoolEntry {
+    Class { name_index: u16 },
     Fieldref { class_index: u16, name_and_type_index: u16 },
     Methodref { class_index: u16, name_and_type_index: u16 },
     InterfaceMethodref { class_index: u16, name_and_type_index: u16 },
@@ -46,7 +54,7 @@ pub enum ConstantPoolEntry {
     Long { high_bytes: u32, low_bytes: u32 },
     Double { high_bytes: u32, low_bytes: u32 },
     NameAndType { name_index: u16, descriptor_index: u16 },
-    Utf8 { length: u16, bytes: Vec<u8> },
+    Utf8(String),
     MethodHandle { reference_kind: u8, reference_index: u16 },
     MethodType { descriptor_index: u16 },
     InvokeDynamic { bootstrap_method_attr_index: u16, name_and_type_index: u16 }
