@@ -3,10 +3,7 @@ use std::fs::File;
 
 mod class;
 mod instruction;
-
-fn remove(buffer: &mut Vec<u8>) {
-    buffer.remove(0);
-}
+mod parser;
 
 fn longer<'a>(s1: &'a str, s2: &'a str) -> &'a str {
     if s1.len() > s2.len() {
@@ -22,12 +19,12 @@ fn main() {
 
     file.read_to_end(&mut buffer).unwrap();
 
-    for x in &buffer {
-        println!("{:02X} = {}", x, x);
-    }
+//    for x in &buffer {
+//        println!("{:02X} = {}", x, x);
+//    }
 
-    remove(&mut buffer);
-    remove(&mut buffer);
+    let result = parser::parse_class_file(&mut buffer);
+    println!("{:#?}", result);
 
     ()
 }

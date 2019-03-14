@@ -71,6 +71,10 @@ pub enum FieldAccessFlag {
     Enum
 }
 
+impl FieldAccessFlag {
+
+}
+
 pub struct Method {
     access_flags: u16,
     name_index: u16,
@@ -91,6 +95,10 @@ pub enum MethodAccessFlag {
     Abstract,
     Strict,
     Synthetic
+}
+
+impl MethodAccessFlag {
+
 }
 
 pub struct AttributeInfo {
