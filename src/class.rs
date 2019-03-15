@@ -60,11 +60,12 @@ pub enum ConstantPoolEntry {
     InvokeDynamic { bootstrap_method_attr_index: u16, name_and_type_index: u16 }
 }
 
+#[derive(Debug)]
 pub struct Field {
-    access_flags: u16,
-    name_index: u16,
-    descriptor_index: u16,
-    attributes: Vec<Attribute>
+    pub access_flags: u16,
+    pub name_index: u16,
+    pub descriptor_index: u16,
+    pub attributes: Vec<AttributeInfo>
 }
 
 pub enum FieldAccessFlag {
@@ -83,11 +84,12 @@ impl FieldAccessFlag {
 
 }
 
+#[derive(Debug)]
 pub struct Method {
-    access_flags: u16,
-    name_index: u16,
-    descriptor_index: u16,
-    attributes: Vec<Attribute>
+    pub access_flags: u16,
+    pub name_index: u16,
+    pub descriptor_index: u16,
+    pub attributes: Vec<AttributeInfo>
 }
 
 pub enum MethodAccessFlag {
@@ -109,12 +111,13 @@ impl MethodAccessFlag {
 
 }
 
+#[derive(Debug)]
 pub struct AttributeInfo {
-    attribute_name_index: u16,
-    attribute_length: u32,
-    info: Vec<u8>
+    pub attribute_name_index: u16,
+    pub bytes: Vec<u8>
 }
 
+#[derive(Debug)]
 pub enum Attribute {
     ConstantValue { constantvalue_index: u16 },
     Code {
@@ -145,6 +148,7 @@ pub enum Attribute {
     BootstrapMethods {}
 }
 
+#[derive(Debug)]
 pub struct ExceptionTableEntry {
     start_pc: u16,
     end_pc: u16,
@@ -152,6 +156,7 @@ pub struct ExceptionTableEntry {
     catch_type: u16
 }
 
+#[derive(Debug)]
 pub struct InnerClassTableEntry {
     inner_class_info_index: u16,
     outer_class_info_index: u16,
@@ -159,6 +164,7 @@ pub struct InnerClassTableEntry {
     inner_class_access_flags: u16
 }
 
+#[derive(Debug)]
 pub struct LineNumberTableEntry {
     start_pc: u16,
     line_number: u16

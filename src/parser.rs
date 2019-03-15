@@ -1,4 +1,9 @@
 use class::ConstantPoolEntry;
+use class::Field;
+use class::Attribute;
+use class::Method;
+use class::AttributeInfo;
+use parser::ParserError::RemainingBytes;
 
 const MAGIC_NUMBER: u32 = 0xCAFEBABE;
 
@@ -11,10 +16,11 @@ const CONSTANT_NAME_AND_TYPE: u8 = 12;
 
 #[derive(Debug)]
 pub enum ParserError {
-    NoMoreBytes,
+    EndOfStream,
     InvalidMagic(u32),
     InvalidConstantTag(u8),
-    InvalidUtf8
+    InvalidUtf8,
+    RemainingBytes
 }
 
 pub fn parse_class_file(buffer: &mut Vec<u8>) -> Result<(), ParserError> {
@@ -29,6 +35,11 @@ pub fn parse_class_file(buffer: &mut Vec<u8>) -> Result<(), ParserError> {
     let interfaces_count = parse_u16(buffer)?;
 //    let interfaces =
     let fields_count = parse_u16(buffer)?;
+    let fields = parse_fields(buffer, fields_count)?;
+    let methods_count = parse_u16(buffer)?;
+    let methods = parse_methods(buffer, methods_count)?;
+    let attributes_count = parse_u16(buffer)?;
+    let attributes = parse_attributes(buffer, attributes_count)?;
 
     println!("Magic: {:X}", magic);
     println!("Minor version: {}", minor_version);
@@ -41,8 +52,27 @@ pub fn parse_class_file(buffer: &mut Vec<u8>) -> Result<(), ParserError> {
     println!("Super class: {:?}", cp_entries.get((super_class - 1) as usize));
     println!("Interfaces count: {}", interfaces_count);
     println!("Fields count: {}", fields_count);
+    println!("{:?}", fields);
+    println!("Methods count: {}", methods_count);
+    println!("{:?}", methods);
+    println!("Attributes count: {}", attributes_count);
+    println!("{:?}", attributes);
 
-    Ok(())
+    if buffer.len() == 0 {
+        Ok(())
+    } else {
+        Err(RemainingBytes)
+    }
+}
+
+fn parse_magic(buffer: &mut Vec<u8>) -> Result<u32, ParserError> {
+    let magic = parse_u32(buffer)?;
+
+    if magic == MAGIC_NUMBER {
+        Ok(magic)
+    } else {
+        Err(ParserError::InvalidMagic(magic))
+    }
 }
 
 fn parse_constant_pool_entries(buffer: &mut Vec<u8>, length: u16) -> Result<Vec<ConstantPoolEntry>, ParserError> {
@@ -93,14 +123,75 @@ fn parse_constant_pool_entry(buffer: &mut Vec<u8>) -> Result<ConstantPoolEntry, 
     }
 }
 
-fn parse_magic(buffer: &mut Vec<u8>) -> Result<u32, ParserError> {
-    let magic = parse_u32(buffer)?;
+fn parse_fields(buffer: &mut Vec<u8>, length: u16) -> Result<Vec<Field>, ParserError> {
+    let mut entries: Vec<Field> = Vec::new();
 
-    if magic == MAGIC_NUMBER {
-        Ok(magic)
-    } else {
-        Err(ParserError::InvalidMagic(magic))
+    for index in 0..length {
+        let entry = parse_field(buffer)?;
+        entries.push(entry)
     }
+
+    Ok(entries)
+}
+
+fn parse_field(buffer: &mut Vec<u8>) -> Result<Field, ParserError> {
+    let access_flags = parse_u16(buffer)?;
+    let name_index = parse_u16(buffer)?;
+    let descriptor_index = parse_u16(buffer)?;
+    let attributes_count = parse_u16(buffer)?;
+    let attributes = parse_attributes(buffer, attributes_count)?;
+
+    println!("# of field attributes: {}", attributes_count);
+
+    let field = Field { access_flags, name_index, descriptor_index, attributes };
+
+    Ok(field)
+}
+
+fn parse_methods(buffer: &mut Vec<u8>, length: u16) -> Result<Vec<Method>, ParserError> {
+    let mut entries: Vec<Method> = Vec::new();
+
+    for index in 0..length {
+        let entry = parse_method(buffer)?;
+        entries.push(entry)
+    }
+
+    Ok(entries)
+}
+
+fn parse_method(buffer: &mut Vec<u8>) -> Result<Method, ParserError> {
+    let access_flags = parse_u16(buffer)?;
+    let name_index = parse_u16(buffer)?;
+    let descriptor_index = parse_u16(buffer)?;
+    let attributes_count = parse_u16(buffer)?;
+    let attributes = parse_attributes(buffer, attributes_count)?;
+
+    println!("# of method attributes: {}", attributes_count);
+
+    let method = Method { access_flags, name_index, descriptor_index, attributes };
+
+    Ok(method)
+}
+
+fn parse_attributes(buffer: &mut Vec<u8>, length: u16) -> Result<Vec<AttributeInfo>, ParserError> {
+    let mut entries: Vec<AttributeInfo> = Vec::new();
+
+    for index in 0..length {
+        let entry = parse_attribute(buffer)?;
+        entries.push(entry)
+    }
+
+    Ok(entries)
+}
+
+fn parse_attribute(buffer: &mut Vec<u8>) -> Result<AttributeInfo, ParserError> {
+    let attribute_name_index = parse_u16(buffer)?;
+    let attribute_length = parse_u32(buffer)?;
+    let bytes = parse_bytes(buffer, attribute_length as usize)?;
+
+    let attribute = AttributeInfo { attribute_name_index, bytes };
+
+    Ok(attribute)
 }
 
 fn parse_u8(buffer: &mut Vec<u8>) -> Result<u8, ParserError> {
@@ -109,7 +200,7 @@ fn parse_u8(buffer: &mut Vec<u8>) -> Result<u8, ParserError> {
             buffer.remove(0);
             Ok(byte)
         },
-        None => Err(ParserError::NoMoreBytes)
+        None => Err(ParserError::EndOfStream)
     }
 }
 
@@ -139,7 +230,7 @@ fn parse_utf8(buffer: &mut Vec<u8>, length: usize) -> Result<String, ParserError
 
 fn parse_bytes(buffer: &mut Vec<u8>, length: usize) -> Result<Vec<u8>, ParserError> {
     if buffer.len() < length {
-        Err(ParserError::NoMoreBytes)
+        Err(ParserError::EndOfStream)
     } else {
         let mut bytes: Vec<u8> = Vec::new();
 
