@@ -3,7 +3,6 @@ use class::Field;
 use class::Attribute;
 use class::Method;
 use class::AttributeInfo;
-use parser::ParserError::RemainingBytes;
 
 const MAGIC_NUMBER: u32 = 0xCAFEBABE;
 
@@ -46,22 +45,22 @@ pub fn parse_class_file(buffer: &mut Vec<u8>) -> Result<(), ParserError> {
     println!("Major version: {}", major_version);
     println!("Constant pool count: {}", cp_count);
     println!("Constant pool entries count: {}", cp_entries.len());
-    println!("{:?}", cp_entries);
+    println!("{:#?}", cp_entries);
     println!("Access flags: {:#04X}", access_flags);
     println!("This class: {:?}", cp_entries.get((this_class - 1) as usize));
     println!("Super class: {:?}", cp_entries.get((super_class - 1) as usize));
     println!("Interfaces count: {}", interfaces_count);
     println!("Fields count: {}", fields_count);
-    println!("{:?}", fields);
+    println!("{:#?}", fields);
     println!("Methods count: {}", methods_count);
-    println!("{:?}", methods);
+    println!("{:#?}", methods);
     println!("Attributes count: {}", attributes_count);
-    println!("{:?}", attributes);
+    println!("{:#?}", attributes);
 
     if buffer.len() == 0 {
         Ok(())
     } else {
-        Err(RemainingBytes)
+        Err(ParserError::RemainingBytes)
     }
 }
 
@@ -141,8 +140,6 @@ fn parse_field(buffer: &mut Vec<u8>) -> Result<Field, ParserError> {
     let attributes_count = parse_u16(buffer)?;
     let attributes = parse_attributes(buffer, attributes_count)?;
 
-    println!("# of field attributes: {}", attributes_count);
-
     let field = Field { access_flags, name_index, descriptor_index, attributes };
 
     Ok(field)
@@ -165,8 +162,6 @@ fn parse_method(buffer: &mut Vec<u8>) -> Result<Method, ParserError> {
     let descriptor_index = parse_u16(buffer)?;
     let attributes_count = parse_u16(buffer)?;
     let attributes = parse_attributes(buffer, attributes_count)?;
-
-    println!("# of method attributes: {}", attributes_count);
 
     let method = Method { access_flags, name_index, descriptor_index, attributes };
 

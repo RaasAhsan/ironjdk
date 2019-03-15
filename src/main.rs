@@ -2,6 +2,7 @@ use std::io::prelude::*;
 use std::fs::File;
 
 mod class;
+mod disassembler;
 mod instruction;
 mod parser;
 

@@ -19,7 +19,7 @@ pub enum Instruction {
     Athrow,
     Baload,
     Bastore,
-    Bipush { byte: u8 },
+    Bipush { byte: i8 },
     Castore,
     Checkcast { indexbyte1: u8, indexbyte2: u8 },
     D2f,
