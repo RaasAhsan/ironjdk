@@ -3,7 +3,6 @@ use class::ConstantPoolEntry;
 use class::Field;
 use class::Attribute;
 use class::Method;
-use class::AttributeInfo;
 use class::ExceptionTableEntry;
 use class::LineNumberTableEntry;
 use disassembler::disassemble_code;
