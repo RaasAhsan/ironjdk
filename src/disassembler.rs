@@ -208,7 +208,14 @@ pub enum DisassemblerError {
 }
 
 pub fn disassemble_code(bytes: &mut Vec<u8>) -> Result<Vec<Instruction>, DisassemblerError> {
-    unimplemented!()
+    let mut instructions: Vec<Instruction> = Vec::new();
+
+    while bytes.len() > 0 {
+        let i = parse_instruction(bytes)?;
+        instructions.push(i);
+    }
+
+    Ok(instructions)
 }
 
 fn parse_instruction(bytes: &mut Vec<u8>) -> Result<Instruction, DisassemblerError> {
