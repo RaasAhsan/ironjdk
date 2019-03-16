@@ -57,7 +57,7 @@ impl ConstantPool {
         self.entries.len()
     }
 
-    pub fn get_attribute_name(&self, index: u16, cp: &ConstantPool) -> Result<String, &str> {
+    pub fn get_utf8(&self, index: u16) -> Result<String, &str> {
         let elem: Option<&ConstantPoolEntry> = self.get(index);
 
         match elem {

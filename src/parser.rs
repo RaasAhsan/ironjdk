@@ -6,6 +6,7 @@ use class::Method;
 use class::AttributeInfo;
 use class::ExceptionTableEntry;
 use class::LineNumberTableEntry;
+use disassembler::disassemble_code;
 
 const MAGIC_NUMBER: u32 = 0xCAFEBABE;
 
@@ -65,6 +66,34 @@ pub fn parse_class_file(buffer: &mut Vec<u8>) -> Result<(), ParserError> {
     println!("{:#?}", methods);
     println!("Attributes count: {}", attributes_count);
     println!("{:#?}", attributes);
+
+    for m in methods {
+        let method_name = cp.get_utf8(m.name_index);
+
+        match method_name {
+            Ok(name) => {
+                println!("Method: {}", name);
+                for a in m.attributes {
+                    match a {
+                        Attribute::Code { code, .. } => {
+                            let mut code_buffer = code.clone();
+                            let disassemble_result = disassemble_code(&mut code_buffer);
+
+                            match disassemble_result {
+                                Ok(instructions) => {
+                                    println!("Code: ");
+                                    println!("{:#?}", instructions);
+                                },
+                                Err(e) => {}
+                            }
+                        },
+                        _ => {}
+                    }
+                }
+            },
+            Err(e) => {}
+        }
+    }
 
     if buffer.len() == 0 {
         Ok(())
@@ -193,7 +222,7 @@ fn parse_attribute(buffer: &mut Vec<u8>, cp: &ConstantPool) -> Result<Attribute,
     let attribute_length = parse_u32(buffer)?;
     let ref mut attribute_buffer = parse_bytes(buffer, attribute_length as usize)?;
 
-    let attribute_name = cp.get_attribute_name(attribute_name_index, cp)
+    let attribute_name = cp.get_utf8(attribute_name_index)
         .map_err(|x| ParserError::ExpectedAttributeName)?;
 
     let attribute_option = match attribute_name.as_ref() {
