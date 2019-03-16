@@ -203,3 +203,11 @@ pub enum Instruction {
     Tableswitch {},
     Wide {}
 }
+
+impl Instruction {
+
+    pub fn to_assembly(&self) -> &str {
+        "ldc 3"
+    }
+
+}

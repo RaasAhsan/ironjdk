@@ -222,140 +222,140 @@ fn parse_instruction(bytes: &mut Vec<u8>) -> Result<Instruction, DisassemblerErr
     let opcode = parse_u8(bytes)?;
 
     match opcode {
-        AALOAD=> Ok(Instruction::Aaload),
-        AASTORE => Ok(Instruction::Aastore),
-        ACONST_NULL => Ok(Instruction::AconstNull),
-        ALOAD_0 => Ok(Instruction::Aload0),
-        ALOAD_1 => Ok(Instruction::Aload1),
-        ALOAD_2 => Ok(Instruction::Aload2),
-        ALOAD_3 => Ok(Instruction::Aload3),
-        ANEWARRAY => {
+        x if x == AALOAD=> Ok(Instruction::Aaload),
+        x if x == AASTORE => Ok(Instruction::Aastore),
+        x if x == ACONST_NULL => Ok(Instruction::AconstNull),
+        x if x == ALOAD_0 => Ok(Instruction::Aload0),
+        x if x == ALOAD_1 => Ok(Instruction::Aload1),
+        x if x == ALOAD_2 => Ok(Instruction::Aload2),
+        x if x == ALOAD_3 => Ok(Instruction::Aload3),
+        x if x == ANEWARRAY => {
             let indexbyte1 = parse_u8(bytes)?;
             let indexbyte2 = parse_u8(bytes)?;
 
             Ok(Instruction::Anewarray { indexbyte1, indexbyte2 })
         },
-        ARETURN => Ok(Instruction::Areturn),
-        ARRAYLENGTH => Ok(Instruction::Arraylength),
-        ASTORE => {
+        x if x == ARETURN => Ok(Instruction::Areturn),
+        x if x == ARRAYLENGTH => Ok(Instruction::Arraylength),
+        x if x == ASTORE => {
             let index = parse_u8(bytes)?;
 
             Ok(Instruction::Astore { index })
         }
-        ASTORE_0 => Ok(Instruction::Astore0),
-        ASTORE_1 => Ok(Instruction::Astore1),
-        ASTORE_2 => Ok(Instruction::Astore2),
-        ASTORE_3 => Ok(Instruction::Astore3),
-        ATHROW => Ok(Instruction::Athrow),
-        BALOAD => Ok(Instruction::Baload),
-        BASTORE => Ok(Instruction::Bastore),
-        BIPUSH => {
+        x if x == ASTORE_0 => Ok(Instruction::Astore0),
+        x if x == ASTORE_1 => Ok(Instruction::Astore1),
+        x if x == ASTORE_2 => Ok(Instruction::Astore2),
+        x if x == ASTORE_3 => Ok(Instruction::Astore3),
+        x if x == ATHROW => Ok(Instruction::Athrow),
+        x if x == BALOAD => Ok(Instruction::Baload),
+        x if x == BASTORE => Ok(Instruction::Bastore),
+        x if x == BIPUSH => {
             let byte = parse_u8(bytes)? as i8;
 
             Ok(Instruction::Bipush { byte })
         }
-        CALOAD => Ok(Instruction::Caload),
-        CASTORE => Ok(Instruction::Castore),
-        CHECKCAST => {
+        x if x == CALOAD => Ok(Instruction::Caload),
+        x if x == CASTORE => Ok(Instruction::Castore),
+        x if x == CHECKCAST => {
             let indexbyte1 = parse_u8(bytes)?;
             let indexbyte2 = parse_u8(bytes)?;
 
             Ok(Instruction::Checkcast { indexbyte1, indexbyte2 })
         },
-        D2F => Ok(Instruction::D2f),
-        D2I => Ok(Instruction::D2i),
-        D2L => Ok(Instruction::D2l),
-        DADD => Ok(Instruction::Dadd),
-        DALOAD => Ok(Instruction::Daload),
-        DASTORE => Ok(Instruction::Dastore),
-        DCMPG => Ok(Instruction::Dcmpg),
-        DCMPL => Ok(Instruction::Dcmpl),
-        DCONST_0 => Ok(Instruction::Dconst0),
-        DCONST_1 => Ok(Instruction::Dconst1),
-        DDIV => Ok(Instruction::Ddiv),
-        DLOAD => {
+        x if x == D2F => Ok(Instruction::D2f),
+        x if x == D2I => Ok(Instruction::D2i),
+        x if x == D2L => Ok(Instruction::D2l),
+        x if x == DADD => Ok(Instruction::Dadd),
+        x if x == DALOAD => Ok(Instruction::Daload),
+        x if x == DASTORE => Ok(Instruction::Dastore),
+        x if x == DCMPG => Ok(Instruction::Dcmpg),
+        x if x == DCMPL => Ok(Instruction::Dcmpl),
+        x if x == DCONST_0 => Ok(Instruction::Dconst0),
+        x if x == DCONST_1 => Ok(Instruction::Dconst1),
+        x if x == DDIV => Ok(Instruction::Ddiv),
+        x if x == DLOAD => {
             let index = parse_u8(bytes)?;
 
             Ok(Instruction::Dload { index })
         },
-        DLOAD_0 => Ok(Instruction::Dload0),
-        DLOAD_1 => Ok(Instruction::Dload1),
-        DLOAD_2 => Ok(Instruction::Dload2),
-        DLOAD_3 => Ok(Instruction::Dload3),
-        DMUL => Ok(Instruction::Dmul),
-        DNEG => Ok(Instruction::Dneg),
-        DREM => Ok(Instruction::Drem),
-        DRETURN=> Ok(Instruction::Dreturn),
-        DSTORE => {
+        x if x == DLOAD_0 => Ok(Instruction::Dload0),
+        x if x == DLOAD_1 => Ok(Instruction::Dload1),
+        x if x == DLOAD_2 => Ok(Instruction::Dload2),
+        x if x == DLOAD_3 => Ok(Instruction::Dload3),
+        x if x == DMUL => Ok(Instruction::Dmul),
+        x if x == DNEG => Ok(Instruction::Dneg),
+        x if x == DREM => Ok(Instruction::Drem),
+        x if x == DRETURN=> Ok(Instruction::Dreturn),
+        x if x == DSTORE => {
             let index = parse_u8(bytes)?;
 
             Ok(Instruction::Dstore { index })
-        }
-        DSTORE_0 => Ok(Instruction::Dstore0),
-        DSTORE_1 => Ok(Instruction::Dstore1),
-        DSTORE_2 => Ok(Instruction::Dstore2),
-        DSTORE_3 => Ok(Instruction::Dstore3),
-        DSUB => Ok(Instruction::Dsub),
-        DUP => Ok(Instruction::Dup),
-        DUP_X1 => Ok(Instruction::DupX1),
-        DUP_X2 => Ok(Instruction::DupX2),
-        DUP2 => Ok(Instruction::Dup2),
-        DUP2_X1=> Ok(Instruction::Dup2X1),
-        DUP2_X2 => Ok(Instruction::Dup2X2),
-        F2D => Ok(Instruction::F2d),
-        F2I => Ok(Instruction::F2i),
-        F2L => Ok(Instruction::F2l),
-        FADD => Ok(Instruction::Fadd),
-        FALOAD => Ok(Instruction::Faload),
-        FASTORE => Ok(Instruction::Fastore),
-        FCMPG => Ok(Instruction::Fcmpg),
-        FCMPL => Ok(Instruction::Fcmpl),
-        FCONST_0 => Ok(Instruction::Fconst0),
-        FCONST_1 => Ok(Instruction::Fconst1),
-        FCONST_2 => Ok(Instruction::Fconst2),
-        FDIV => Ok(Instruction::Fdiv),
-        FLOAD => {
+        },
+        x if x == DSTORE_0 => Ok(Instruction::Dstore0),
+        x if x == DSTORE_1 => Ok(Instruction::Dstore1),
+        x if x == DSTORE_2 => Ok(Instruction::Dstore2),
+        x if x == DSTORE_3 => Ok(Instruction::Dstore3),
+        x if x == DSUB => Ok(Instruction::Dsub),
+        x if x == DUP => Ok(Instruction::Dup),
+        x if x == DUP_X1 => Ok(Instruction::DupX1),
+        x if x == DUP_X2 => Ok(Instruction::DupX2),
+        x if x == DUP2 => Ok(Instruction::Dup2),
+        x if x == DUP2_X1=> Ok(Instruction::Dup2X1),
+        x if x == DUP2_X2 => Ok(Instruction::Dup2X2),
+        x if x == F2D => Ok(Instruction::F2d),
+        x if x == F2I => Ok(Instruction::F2i),
+        x if x == F2L => Ok(Instruction::F2l),
+        x if x == FADD => Ok(Instruction::Fadd),
+        x if x == FALOAD => Ok(Instruction::Faload),
+        x if x == FASTORE => Ok(Instruction::Fastore),
+        x if x == FCMPG => Ok(Instruction::Fcmpg),
+        x if x == FCMPL => Ok(Instruction::Fcmpl),
+        x if x == FCONST_0 => Ok(Instruction::Fconst0),
+        x if x == FCONST_1 => Ok(Instruction::Fconst1),
+        x if x == FCONST_2 => Ok(Instruction::Fconst2),
+        x if x == FDIV => Ok(Instruction::Fdiv),
+        x if x == FLOAD => {
             let index = parse_u8(bytes)?;
 
             Ok(Instruction::Fload { index })
-        }
-        FLOAD_0 => Ok(Instruction::Fload0),
-        FLOAD_1 => Ok(Instruction::Fload1),
-        FLOAD_2 => Ok(Instruction::Fload2),
-        FLOAD_3 => Ok(Instruction::Fload3),
-        FMUL => Ok(Instruction::Fmul),
-        FNEG => Ok(Instruction::Fneg),
-        FREM => Ok(Instruction::Frem),
-        FRETURN => Ok(Instruction::Freturn),
-        FSTORE => {
+        },
+        x if x == FLOAD_0 => Ok(Instruction::Fload0),
+        x if x == FLOAD_1 => Ok(Instruction::Fload1),
+        x if x == FLOAD_2 => Ok(Instruction::Fload2),
+        x if x == FLOAD_3 => Ok(Instruction::Fload3),
+        x if x == FMUL => Ok(Instruction::Fmul),
+        x if x == FNEG => Ok(Instruction::Fneg),
+        x if x == FREM => Ok(Instruction::Frem),
+        x if x == FRETURN => Ok(Instruction::Freturn),
+        x if x == FSTORE => {
             let index = parse_u8(bytes)?;
 
             Ok(Instruction::Fstore { index })
-        }
-        FSTORE_0 => Ok(Instruction::Fstore0),
-        FSTORE_1 => Ok(Instruction::Fstore1),
-        FSTORE_2 => Ok(Instruction::Fstore2),
-        FSTORE_3 => Ok(Instruction::Fstore3),
-        FSUB => Ok(Instruction::Fsub),
-        GETFIELD => {
+        },
+        x if x == FSTORE_0 => Ok(Instruction::Fstore0),
+        x if x == FSTORE_1 => Ok(Instruction::Fstore1),
+        x if x == FSTORE_2 => Ok(Instruction::Fstore2),
+        x if x == FSTORE_3 => Ok(Instruction::Fstore3),
+        x if x == FSUB => Ok(Instruction::Fsub),
+        x if x == GETFIELD => {
             let indexbyte1 = parse_u8(bytes)?;
             let indexbyte2 = parse_u8(bytes)?;
 
             Ok(Instruction::Getfield { indexbyte1, indexbyte2 })
         },
-        GETSTATIC => {
+        x if x == GETSTATIC => {
             let indexbyte1 = parse_u8(bytes)?;
             let indexbyte2 = parse_u8(bytes)?;
 
             Ok(Instruction::Getstatic { indexbyte1, indexbyte2 })
         },
-        GOTO => {
+        x if x == GOTO => {
             let branchbyte1 = parse_u8(bytes)?;
             let branchbyte2 = parse_u8(bytes)?;
 
             Ok(Instruction::Goto { branchbyte1, branchbyte2 })
         },
-        GOTO_W => {
+        x if x == GOTO_W => {
             let indexbyte1 = parse_u8(bytes)?;
             let indexbyte2 = parse_u8(bytes)?;
             let indexbyte3 = parse_u8(bytes)?;
@@ -363,143 +363,143 @@ fn parse_instruction(bytes: &mut Vec<u8>) -> Result<Instruction, DisassemblerErr
 
             Ok(Instruction::GotoW(indexbyte1, indexbyte2, indexbyte3, indexbyte4))
         },
-        I2B => Ok(Instruction::I2b),
-        I2C => Ok(Instruction::I2c),
-        I2D => Ok(Instruction::I2d),
-        I2F => Ok(Instruction::I2f),
-        I2L => Ok(Instruction::I2l),
-        IADD => Ok(Instruction::Iadd),
-        IALOAD => Ok(Instruction::Iaload),
-        IAND => Ok(Instruction::Iand),
-        IASTORE => Ok(Instruction::Iastore),
-        ICONST_M1 => Ok(Instruction::IconstM1),
-        ICONST_0 => Ok(Instruction::Iconst0),
-        ICONST_1 => Ok(Instruction::Iconst1),
-        ICONST_2 => Ok(Instruction::Iconst2),
-        ICONST_3 => Ok(Instruction::Iconst3),
-        ICONST_4 => Ok(Instruction::Iconst4),
-        ICONST_5 => Ok(Instruction::Iconst5),
-        IDIV => Ok(Instruction::Idiv),
-        IF_ACMPEQ => {
+        x if x == I2B => Ok(Instruction::I2b),
+        x if x == I2C => Ok(Instruction::I2c),
+        x if x == I2D => Ok(Instruction::I2d),
+        x if x == I2F => Ok(Instruction::I2f),
+        x if x == I2L => Ok(Instruction::I2l),
+        x if x == IADD => Ok(Instruction::Iadd),
+        x if x == IALOAD => Ok(Instruction::Iaload),
+        x if x == IAND => Ok(Instruction::Iand),
+        x if x == IASTORE => Ok(Instruction::Iastore),
+        x if x == ICONST_M1 => Ok(Instruction::IconstM1),
+        x if x == ICONST_0 => Ok(Instruction::Iconst0),
+        x if x == ICONST_1 => Ok(Instruction::Iconst1),
+        x if x == ICONST_2 => Ok(Instruction::Iconst2),
+        x if x == ICONST_3 => Ok(Instruction::Iconst3),
+        x if x == ICONST_4 => Ok(Instruction::Iconst4),
+        x if x == ICONST_5 => Ok(Instruction::Iconst5),
+        x if x == IDIV => Ok(Instruction::Idiv),
+        x if x == IF_ACMPEQ => {
             let branchbyte1 = parse_u8(bytes)?;
             let branchbyte2 = parse_u8(bytes)?;
 
             Ok(Instruction::IfAcmpeq { branchbyte1, branchbyte2 })
         },
-        IF_ACMPNE => {
+        x if x == IF_ACMPNE => {
             let branchbyte1 = parse_u8(bytes)?;
             let branchbyte2 = parse_u8(bytes)?;
 
             Ok(Instruction::IfAcmpne { branchbyte1, branchbyte2 })
         },
-        IF_ICMPEQ => {
+        x if x == IF_ICMPEQ => {
             let branchbyte1 = parse_u8(bytes)?;
             let branchbyte2 = parse_u8(bytes)?;
 
             Ok(Instruction::IfIcmpeq { branchbyte1, branchbyte2 })
         },
-        IF_ICMPNE => {
+        x if x == IF_ICMPNE => {
             let branchbyte1 = parse_u8(bytes)?;
             let branchbyte2 = parse_u8(bytes)?;
 
             Ok(Instruction::IfIcmpne { branchbyte1, branchbyte2 })
         },
-        IF_ICMPLT => {
+        x if x == IF_ICMPLT => {
             let branchbyte1 = parse_u8(bytes)?;
             let branchbyte2 = parse_u8(bytes)?;
 
             Ok(Instruction::IfIcmplt { branchbyte1, branchbyte2 })
         },
-        IF_ICMPGE => {
+        x if x == IF_ICMPGE => {
             let branchbyte1 = parse_u8(bytes)?;
             let branchbyte2 = parse_u8(bytes)?;
 
             Ok(Instruction::IfIcmpge { branchbyte1, branchbyte2 })
         },
-        IF_ICMPGT => {
+        x if x == IF_ICMPGT => {
             let branchbyte1 = parse_u8(bytes)?;
             let branchbyte2 = parse_u8(bytes)?;
 
             Ok(Instruction::IfIcmpgt { branchbyte1, branchbyte2 })
         },
-        IF_ICMPLE => {
+        x if x == IF_ICMPLE => {
             let branchbyte1 = parse_u8(bytes)?;
             let branchbyte2 = parse_u8(bytes)?;
 
             Ok(Instruction::IfIcmple { branchbyte1, branchbyte2 })
         },
-        IFEQ => {
+        x if x == IFEQ => {
             let branchbyte1 = parse_u8(bytes)?;
             let branchbyte2 = parse_u8(bytes)?;
 
             Ok(Instruction::Ifeq { branchbyte1, branchbyte2 })
         },
-        IFNE => {
+        x if x == IFNE => {
             let branchbyte1 = parse_u8(bytes)?;
             let branchbyte2 = parse_u8(bytes)?;
 
             Ok(Instruction::Ifne { branchbyte1, branchbyte2 })
         },
-        IFLT => {
+        x if x == IFLT => {
             let branchbyte1 = parse_u8(bytes)?;
             let branchbyte2 = parse_u8(bytes)?;
 
             Ok(Instruction::Iflt { branchbyte1, branchbyte2 })
         },
-        IFGE => {
+        x if x == IFGE => {
             let branchbyte1 = parse_u8(bytes)?;
             let branchbyte2 = parse_u8(bytes)?;
 
             Ok(Instruction::Ifge { branchbyte1, branchbyte2 })
         },
-        IFGT => {
+        x if x == IFGT => {
             let branchbyte1 = parse_u8(bytes)?;
             let branchbyte2 = parse_u8(bytes)?;
 
             Ok(Instruction::Ifgt { branchbyte1, branchbyte2 })
         },
-        IFLE => {
+        x if x == IFLE => {
             let branchbyte1 = parse_u8(bytes)?;
             let branchbyte2 = parse_u8(bytes)?;
 
             Ok(Instruction::Ifle { branchbyte1, branchbyte2 })
         },
-        IFNONNULL => {
+        x if x == IFNONNULL => {
             let branchbyte1 = parse_u8(bytes)?;
             let branchbyte2 = parse_u8(bytes)?;
 
             Ok(Instruction::Ifnonnull { branchbyte1, branchbyte2 })
         },
-        IFNULL => {
+        x if x == IFNULL => {
             let branchbyte1 = parse_u8(bytes)?;
             let branchbyte2 = parse_u8(bytes)?;
 
             Ok(Instruction::Ifnull { branchbyte1, branchbyte2 })
         },
-        IINC => {
+        x if x == IINC => {
             let index = parse_u8(bytes)?;
             let constant = parse_u8(bytes)? as i8;
 
             Ok(Instruction::Iinc { index, constant })
         },
-        ILOAD => {
+        x if x == ILOAD => {
             let index = parse_u8(bytes)?;
 
             Ok(Instruction::Iload { index })
         },
-        ILOAD_0 => Ok(Instruction::Iload0),
-        ILOAD_1 => Ok(Instruction::Iload1),
-        ILOAD_2 => Ok(Instruction::Iload2),
-        ILOAD_3 => Ok(Instruction::Iload3),
-        IMUL => Ok(Instruction::Imul),
-        INEG => Ok(Instruction::Ineg),
-        INSTANCEOF => {
+        x if x == ILOAD_0 => Ok(Instruction::Iload0),
+        x if x == ILOAD_1 => Ok(Instruction::Iload1),
+        x if x == ILOAD_2 => Ok(Instruction::Iload2),
+        x if x == ILOAD_3 => Ok(Instruction::Iload3),
+        x if x == IMUL => Ok(Instruction::Imul),
+        x if x == INEG => Ok(Instruction::Ineg),
+        x if x == INSTANCEOF => {
             let indexbyte1 = parse_u8(bytes)?;
             let indexbyte2 = parse_u8(bytes)?;
 
             Ok(Instruction::Instanceof { indexbyte1, indexbyte2 })
         },
-        INVOKEDYNAMIC => {
+        x if x == INVOKEDYNAMIC => {
             let indexbyte1 = parse_u8(bytes)?;
             let indexbyte2 = parse_u8(bytes)?;
             let z1 = parse_u8(bytes)?;
@@ -507,7 +507,7 @@ fn parse_instruction(bytes: &mut Vec<u8>) -> Result<Instruction, DisassemblerErr
 
             Ok(Instruction::Invokedynamic { indexbyte1, indexbyte2 })
         },
-        INVOKEINTERFACE => {
+        x if x == INVOKEINTERFACE => {
             let indexbyte1 = parse_u8(bytes)?;
             let indexbyte2 = parse_u8(bytes)?;
             let count = parse_u8(bytes)?;
@@ -515,48 +515,48 @@ fn parse_instruction(bytes: &mut Vec<u8>) -> Result<Instruction, DisassemblerErr
 
             Ok(Instruction::Invokeinterface { indexbyte1, indexbyte2, count })
         },
-        INVOKESPECIAL => {
+        x if x == INVOKESPECIAL => {
             let indexbyte1 = parse_u8(bytes)?;
             let indexbyte2 = parse_u8(bytes)?;
 
             Ok(Instruction::Invokespecial { indexbyte1, indexbyte2 })
         },
-        INVOKESTATIC => {
+        x if x == INVOKESTATIC => {
             let indexbyte1 = parse_u8(bytes)?;
             let indexbyte2 = parse_u8(bytes)?;
 
             Ok(Instruction::Invokestatic { indexbyte1, indexbyte2 })
         },
-        INVOKEVIRTUAL => {
+        x if x == INVOKEVIRTUAL => {
             let indexbyte1 = parse_u8(bytes)?;
             let indexbyte2 = parse_u8(bytes)?;
 
             Ok(Instruction::Invokevirtual { indexbyte1, indexbyte2 })
         },
-        IOR=> Ok(Instruction::Ior),
-        IREM => Ok(Instruction::Irem),
-        IRETURN => Ok(Instruction::Ireturn),
-        ISHL => Ok(Instruction::Ishl),
-        ISHR => Ok(Instruction::Ishr),
-        ISTORE => {
+        x if x == IOR=> Ok(Instruction::Ior),
+        x if x == IREM => Ok(Instruction::Irem),
+        x if x == IRETURN => Ok(Instruction::Ireturn),
+        x if x == ISHL => Ok(Instruction::Ishl),
+        x if x == ISHR => Ok(Instruction::Ishr),
+        x if x == ISTORE => {
             let index = parse_u8(bytes)?;
 
             Ok(Instruction::Istore { index })
         },
-        ISTORE_0 => Ok(Instruction::Istore0),
-        ISTORE_1 => Ok(Instruction::Istore1),
-        ISTORE_2 => Ok(Instruction::Istore2),
-        ISTORE_3 => Ok(Instruction::Istore3),
-        ISUB => Ok(Instruction::Isub),
-        IUSHR => Ok(Instruction::Iushr),
-        IXOR => Ok(Instruction::Ixor),
-        JSR => {
+        x if x == ISTORE_0 => Ok(Instruction::Istore0),
+        x if x == ISTORE_1 => Ok(Instruction::Istore1),
+        x if x == ISTORE_2 => Ok(Instruction::Istore2),
+        x if x == ISTORE_3 => Ok(Instruction::Istore3),
+        x if x == ISUB => Ok(Instruction::Isub),
+        x if x == IUSHR => Ok(Instruction::Iushr),
+        x if x == IXOR => Ok(Instruction::Ixor),
+        x if x == JSR => {
             let branchbyte1 = parse_u8(bytes)?;
             let branchbyte2 = parse_u8(bytes)?;
 
             Ok(Instruction::Jsr { branchbyte1, branchbyte2 })
         },
-        JSR_W => {
+        x if x == JSR_W => {
             let branchbyte1 = parse_u8(bytes)?;
             let branchbyte2 = parse_u8(bytes)?;
             let branchbyte3 = parse_u8(bytes)?;
@@ -564,114 +564,114 @@ fn parse_instruction(bytes: &mut Vec<u8>) -> Result<Instruction, DisassemblerErr
 
             Ok(Instruction::JsrW { branchbyte1, branchbyte2, branchbyte3, branchbyte4 })
         },
-        L2D => Ok(Instruction::L2d),
-        L2F => Ok(Instruction::L2f),
-        L2I => Ok(Instruction::L2i),
-        LADD => Ok(Instruction::Ladd),
-        LALOAD => Ok(Instruction::Laload),
-        LAND => Ok(Instruction::Land),
-        LASTORE => Ok(Instruction::Lastore),
-        LCMP => Ok(Instruction::Lcmp),
-        LCONST_0 => Ok(Instruction::Lconst0),
-        LCONST_1 => Ok(Instruction::Lconst1),
-        LDC => {
+        x if x == L2D => Ok(Instruction::L2d),
+        x if x == L2F => Ok(Instruction::L2f),
+        x if x == L2I => Ok(Instruction::L2i),
+        x if x == LADD => Ok(Instruction::Ladd),
+        x if x == LALOAD => Ok(Instruction::Laload),
+        x if x == LAND => Ok(Instruction::Land),
+        x if x == LASTORE => Ok(Instruction::Lastore),
+        x if x == LCMP => Ok(Instruction::Lcmp),
+        x if x == LCONST_0 => Ok(Instruction::Lconst0),
+        x if x == LCONST_1 => Ok(Instruction::Lconst1),
+        x if x == LDC => {
             let index = parse_u8(bytes)?;
 
             Ok(Instruction::Ldc { index })
         },
-        LDC_W => {
+        x if x == LDC_W => {
             let indexbyte1 = parse_u8(bytes)?;
             let indexbyte2 = parse_u8(bytes)?;
 
             Ok(Instruction::LdcW { indexbyte1, indexbyte2 })
         },
-        LDC2_W => {
+        x if x == LDC2_W => {
             let indexbyte1 = parse_u8(bytes)?;
             let indexbyte2 = parse_u8(bytes)?;
 
             Ok(Instruction::Ldc2W { indexbyte1, indexbyte2 })
         },
-        LDIV => Ok(Instruction::Ldiv),
-        LLOAD => {
+        x if x == LDIV => Ok(Instruction::Ldiv),
+        x if x == LLOAD => {
             let index = parse_u8(bytes)?;
 
             Ok(Instruction::Lload)
         },
-        LLOAD_0 => Ok(Instruction::Lload0),
-        LLOAD_1 => Ok(Instruction::Lload1),
-        LLOAD_2 => Ok(Instruction::Lload2),
-        LLOAD_3 => Ok(Instruction::Lload3),
-        LMUL => Ok(Instruction::Lmul),
-        LNEG => Ok(Instruction::Lneg),
-        LOOKUPSWITCH => Ok(Instruction::Lookupswitch {}),
-        LOR => Ok(Instruction::Lor),
-        LRETURN => Ok(Instruction::Lreturn),
-        LSHL => Ok(Instruction::Lshl),
-        LSHR => Ok(Instruction::Lshr),
-        LSTORE => {
+        x if x == LLOAD_0 => Ok(Instruction::Lload0),
+        x if x == LLOAD_1 => Ok(Instruction::Lload1),
+        x if x == LLOAD_2 => Ok(Instruction::Lload2),
+        x if x == LLOAD_3 => Ok(Instruction::Lload3),
+        x if x == LMUL => Ok(Instruction::Lmul),
+        x if x == LNEG => Ok(Instruction::Lneg),
+        x if x == LOOKUPSWITCH => Ok(Instruction::Lookupswitch {}),
+        x if x == LOR => Ok(Instruction::Lor),
+        x if x == LRETURN => Ok(Instruction::Lreturn),
+        x if x == LSHL => Ok(Instruction::Lshl),
+        x if x == LSHR => Ok(Instruction::Lshr),
+        x if x == LSTORE => {
             let index = parse_u8(bytes)?;
 
             Ok(Instruction::Lstore { index })
         },
-        LSTORE_0 => Ok(Instruction::Lstore0),
-        LSTORE_1 => Ok(Instruction::Lstore1),
-        LSTORE_2 => Ok(Instruction::Lstore2),
-        LSTORE_3 => Ok(Instruction::Lstore3),
-        LSUB => Ok(Instruction::Lsub),
-        LUSHR => Ok(Instruction::Lushr),
-        LXOR => Ok(Instruction::Lxor),
-        MONITORENTER => Ok(Instruction::Monitorenter),
-        MONITOREXIT => Ok(Instruction::Monitorexit),
-        MULTIANEWARRAY => {
+        x if x == LSTORE_0 => Ok(Instruction::Lstore0),
+        x if x == LSTORE_1 => Ok(Instruction::Lstore1),
+        x if x == LSTORE_2 => Ok(Instruction::Lstore2),
+        x if x == LSTORE_3 => Ok(Instruction::Lstore3),
+        x if x == LSUB => Ok(Instruction::Lsub),
+        x if x == LUSHR => Ok(Instruction::Lushr),
+        x if x == LXOR => Ok(Instruction::Lxor),
+        x if x == MONITORENTER => Ok(Instruction::Monitorenter),
+        x if x == MONITOREXIT => Ok(Instruction::Monitorexit),
+        x if x == MULTIANEWARRAY => {
             let indexbyte1 = parse_u8(bytes)?;
             let indexbyte2 = parse_u8(bytes)?;
             let dimensions = parse_u8(bytes)?;
 
             Ok(Instruction::Multianewarray { indexbyte1, indexbyte2, dimensions })
         },
-        NEW => {
+        x if x == NEW => {
             let indexbyte1 = parse_u8(bytes)?;
             let indexbyte2 = parse_u8(bytes)?;
 
             Ok(Instruction::New { indexbyte1, indexbyte2 })
         },
-        NEWARRAY => {
+        x if x == NEWARRAY => {
             let atype = parse_u8(bytes)?;
 
             Ok(Instruction::Newarray { atype })
         },
-        NOP => Ok(Instruction::Nop),
-        POP => Ok(Instruction::Pop),
-        POP2 => Ok(Instruction::Pop2),
-        PUTFIELD => {
+        x if x == NOP => Ok(Instruction::Nop),
+        x if x == POP => Ok(Instruction::Pop),
+        x if x == POP2 => Ok(Instruction::Pop2),
+        x if x == PUTFIELD => {
             let indexbyte1 = parse_u8(bytes)?;
             let indexbyte2 = parse_u8(bytes)?;
 
             Ok(Instruction::Putfield { indexbyte1, indexbyte2 })
         },
-        PUTSTATIC => {
+        x if x == PUTSTATIC => {
             let indexbyte1 = parse_u8(bytes)?;
             let indexbyte2 = parse_u8(bytes)?;
 
             Ok(Instruction::Putstatic { indexbyte1, indexbyte2 })
         },
-        RET => {
+        x if x == RET => {
             let index = parse_u8(bytes)?;
 
             Ok(Instruction::Ret { index })
         },
-        RETURN => Ok(Instruction::Return),
-        SALOAD => Ok(Instruction::Saload),
-        SASTORE => Ok(Instruction::Sastore),
-        SIPUSH => {
+        x if x == RETURN => Ok(Instruction::Return),
+        x if x == SALOAD => Ok(Instruction::Saload),
+        x if x == SASTORE => Ok(Instruction::Sastore),
+        x if x == SIPUSH => {
             let byte1 = parse_u8(bytes)?;
             let byte2 = parse_u8(bytes)?;
 
             Ok(Instruction::Sipush { byte1, byte2 })
         },
-        SWAP => Ok(Instruction::Swap),
-        TABLESWITCH => Ok(Instruction::Tableswitch {}),
-        WIDE => Ok(Instruction::Wide {}),
+        x if x == SWAP => Ok(Instruction::Swap),
+        x if x == TABLESWITCH => Ok(Instruction::Tableswitch {}),
+        x if x == WIDE => Ok(Instruction::Wide {}),
         x => Err(DisassemblerError::InvalidOpcode(x))
     }
 }
