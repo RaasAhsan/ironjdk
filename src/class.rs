@@ -41,11 +41,33 @@ impl ConstantPoolTag {
 
 }
 
-struct ConstantPool {
-    entries: Vec<ConstantPoolEntry>
+#[derive(Debug)]
+pub struct ConstantPool {
+    pub entries: Vec<ConstantPoolEntry>
 }
 
 impl ConstantPool {
+
+    // Logical index
+    pub fn get(&self, index: u16) -> Option<&ConstantPoolEntry> {
+        self.entries.get((index - 1) as usize)
+    }
+
+    pub fn size(&self) -> usize {
+        self.entries.len()
+    }
+
+    pub fn get_attribute_name(&self, index: u16, cp: &ConstantPool) -> Result<String, &str> {
+        let elem: Option<&ConstantPoolEntry> = self.get(index);
+
+        match elem {
+            Some(e) => match e {
+                &ConstantPoolEntry::Utf8(ref string) => Ok(string.clone()),
+                _ => Err("Expected Utf8 attribute")
+            },
+            None => Err("Constant pool index out of bounds")
+        }
+    }
 
 }
 
