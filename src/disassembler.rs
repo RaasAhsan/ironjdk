@@ -203,13 +203,13 @@ const WIDE: u8 = 0xc4;
 
 
 
-enum DisassemblerError {
+pub enum DisassemblerError {
     EndOfCode,
     InvalidOpcode(u8)
 }
 
 pub fn disassemble_code(bytes: &mut Vec<u8>) -> Result<Vec<Instruction>, DisassemblerError> {
-
+    unimplemented!()
 }
 
 fn parse_instruction(bytes: &mut Vec<u8>) -> Result<Instruction, DisassemblerError> {
@@ -252,7 +252,7 @@ fn parse_instruction(bytes: &mut Vec<u8>) -> Result<Instruction, DisassemblerErr
     }
 }
 
-fn parse_u8(bytes: &mut Vec<u8>) -> Result<u8, DisassemblerError> {
+fn parse_u8(buffer: &mut Vec<u8>) -> Result<u8, DisassemblerError> {
     match buffer.get(0) {
         Some(&byte) => {
             buffer.remove(0);

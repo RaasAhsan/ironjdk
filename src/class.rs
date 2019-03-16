@@ -41,6 +41,14 @@ impl ConstantPoolTag {
 
 }
 
+struct ConstantPool {
+    entries: Vec<ConstantPoolEntry>
+}
+
+impl ConstantPool {
+
+}
+
 // High
 #[derive(Debug)]
 pub enum ConstantPoolEntry {
@@ -65,7 +73,7 @@ pub struct Field {
     pub access_flags: u16,
     pub name_index: u16,
     pub descriptor_index: u16,
-    pub attributes: Vec<AttributeInfo>
+    pub attributes: Vec<Attribute>
 }
 
 pub enum FieldAccessFlag {
@@ -89,7 +97,7 @@ pub struct Method {
     pub access_flags: u16,
     pub name_index: u16,
     pub descriptor_index: u16,
-    pub attributes: Vec<AttributeInfo>
+    pub attributes: Vec<Attribute>
 }
 
 pub enum MethodAccessFlag {
@@ -123,7 +131,6 @@ pub enum Attribute {
     Code {
         max_stack: u16,
         max_locals: u16,
-        code_length: u32,
         code: Vec<u8>,
         exceptions: Vec<ExceptionTableEntry>,
         attributes: Vec<Attribute>
@@ -133,9 +140,9 @@ pub enum Attribute {
     InnerClasses { classes: Vec<InnerClassTableEntry> },
     EnclosingMethod {},
     Synthetic {},
-    SourceFile { sourcefile_index: u16 },
+    SourceFile { index: u16 },
     SourceDebugExtension {},
-    LineNumberTable { lines: Vec<LineNumberTableEntry> },
+    LineNumberTable(Vec<LineNumberTableEntry>),
     LocalVariableTable {},
     LocalVariableTypeTable {},
     Deprecated {},
@@ -166,6 +173,6 @@ pub struct InnerClassTableEntry {
 
 #[derive(Debug)]
 pub struct LineNumberTableEntry {
-    start_pc: u16,
-    line_number: u16
+    pub start_pc: u16,
+    pub line_number: u16
 }
