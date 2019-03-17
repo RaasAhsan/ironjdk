@@ -230,14 +230,35 @@ pub enum Attribute {
     LineNumberTable(Vec<LineNumberTableEntry>),
     LocalVariableTable {},
     LocalVariableTypeTable {},
-    Deprecated {},
-    RuntimeVisibleAnnotations {},
+    Deprecated,
+    RuntimeVisibleAnnotations { annotations: Vec<Annotation> },
     ElementValue {},
     RuntimeInvisibleAnnotations {},
     RuntimeVisibleParameterAnnotations {},
     RuntimeInvisibleParameterAnnotations {},
     AnnotationDefault {},
     BootstrapMethods {}
+}
+
+#[derive(Debug)]
+pub struct Annotation {
+    pub type_index: u16,
+    pub elements: Vec<AnnotationElementPair>
+}
+
+#[derive(Debug)]
+pub struct AnnotationElementPair {
+    pub element_name_index: u16,
+    pub element_value: AnnotationElementValue
+}
+
+#[derive(Debug)]
+pub enum AnnotationElementValue {
+    Const(u16),
+    EnumConst { type_name_index: u16, const_name_index: u16 },
+    ClassInfo(u16),
+    Annotation(Annotation),
+    Array(Vec<AnnotationElementValue>)
 }
 
 #[derive(Debug)]

@@ -9,6 +9,9 @@ use class::ClassFile;
 use class::StackMapFrame;
 use class::VerificationTypeInfo;
 use class::InnerClassTableEntry;
+use class::Annotation;
+use class::AnnotationElementPair;
+use class::AnnotationElementValue;
 
 const MAGIC_NUMBER: u32 = 0xCAFEBABE;
 
@@ -31,6 +34,8 @@ const ATTRIBUTE_STACK_MAP_TABLE: &str = "StackMapTable";
 const ATTRIBUTE_EXCEPTIONS: &str = "Exceptions";
 const ATTRIBUTE_CONSTANT_VALUE: &str = "ConstantValue";
 const ATTRIBUTE_INNER_CLASSES: &str = "InnerClasses";
+const ATTRIBUTE_DEPRECATED: &str = "Deprecated";
+const ATTRIBUTE_RUNTIME_VISIBLE_ANNOTATIONS: &str = "RuntimeVisibleAnnotations";
 
 #[derive(Debug)]
 pub enum ClassReaderError {
@@ -42,7 +47,8 @@ pub enum ClassReaderError {
     ExpectedAttributeName,
     InvalidAttributeName(String),
     InvalidStackMapFrame(u8),
-    InvalidVerificationTypeInfo(u8)
+    InvalidVerificationTypeInfo(u8),
+    InvalidAnnotationElementValue(char)
 }
 
 pub fn read_class_file(buffer: &mut Vec<u8>) -> Result<ClassFile, ClassReaderError> {
@@ -308,6 +314,13 @@ fn read_attribute(buffer: &mut Vec<u8>, cp: &ConstantPool) -> Result<Attribute, 
 
             Some(Attribute::InnerClasses { classes })
         },
+        ATTRIBUTE_DEPRECATED => Some(Attribute::Deprecated),
+        ATTRIBUTE_RUNTIME_VISIBLE_ANNOTATIONS => {
+            let count = read_u16(attribute_buffer)?;
+            let annotations = read_annotations(attribute_buffer, count)?;
+
+            Some(Attribute::RuntimeVisibleAnnotations { annotations })
+        },
         _ => None
     };
 
@@ -322,6 +335,84 @@ fn read_attribute(buffer: &mut Vec<u8>, cp: &ConstantPool) -> Result<Attribute, 
         },
         None => Err(ClassReaderError::InvalidAttributeName(attribute_name))
     }
+}
+
+fn read_annotations(buffer: &mut Vec<u8>, length: u16) -> Result<Vec<Annotation>, ClassReaderError> {
+    let mut entries: Vec<Annotation> = Vec::new();
+
+    for index in 0..length {
+        let entry = read_annotation(buffer)?;
+        entries.push(entry);
+    }
+
+    Ok(entries)
+}
+
+fn read_annotation(buffer: &mut Vec<u8>) -> Result<Annotation, ClassReaderError> {
+    let type_index = read_u16(buffer)?;
+    let length = read_u16(buffer)?;
+    let elements = read_annotation_element_pairs(buffer, length)?;
+
+    Ok(Annotation { type_index, elements })
+}
+
+fn read_annotation_element_values(buffer: &mut Vec<u8>, length: u16) -> Result<Vec<AnnotationElementValue>, ClassReaderError> {
+    let mut entries: Vec<AnnotationElementValue> = Vec::new();
+
+    for index in 0..length {
+        let entry = read_annotation_element_value(buffer)?;
+        entries.push(entry);
+    }
+
+    Ok(entries)
+}
+
+fn read_annotation_element_value(buffer: &mut Vec<u8>) -> Result<AnnotationElementValue, ClassReaderError> {
+    let tag = read_u8(buffer)? as char;
+
+    match tag {
+        'B' | 'C' | 'D' | 'F' | 'I' | 'J' | 'S' | 'Z' | 's' => {
+            let value = read_u16(buffer)?;
+            Ok(AnnotationElementValue::Const(value))
+        },
+        'e' => {
+            let type_name_index = read_u16(buffer)?;
+            let const_name_index = read_u16(buffer)?;
+            Ok(AnnotationElementValue::EnumConst { type_name_index, const_name_index })
+        },
+        'c' => {
+            let class_info_index = read_u16(buffer)?;
+            Ok(AnnotationElementValue::ClassInfo(class_info_index))
+        },
+        '@' => {
+            let annotation = read_annotation(buffer)?;
+            Ok(AnnotationElementValue::Annotation(annotation))
+        },
+        '[' => {
+            let num_values = read_u16(buffer)?;
+            let values = read_annotation_element_values(buffer, num_values)?;
+            Ok(AnnotationElementValue::Array(values))
+        },
+        _ => Err(ClassReaderError::InvalidAnnotationElementValue(tag))
+    }
+}
+
+fn read_annotation_element_pairs(buffer: &mut Vec<u8>, length: u16) -> Result<Vec<AnnotationElementPair>, ClassReaderError> {
+    let mut entries: Vec<AnnotationElementPair> = Vec::new();
+
+    for index in 0..length {
+        let entry = read_annotation_element_pair(buffer)?;
+        entries.push(entry);
+    }
+
+    Ok(entries)
+}
+
+fn read_annotation_element_pair(buffer: &mut Vec<u8>) -> Result<AnnotationElementPair, ClassReaderError> {
+    let element_name_index = read_u16(buffer)?;
+    let element_value = read_annotation_element_value(buffer)?;
+
+    Ok(AnnotationElementPair { element_name_index, element_value })
 }
 
 fn read_inner_class_entries(buffer: &mut Vec<u8>, length: u16) -> Result<Vec<InnerClassTableEntry>, ClassReaderError> {
