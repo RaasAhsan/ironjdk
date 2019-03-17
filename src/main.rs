@@ -25,7 +25,14 @@ fn main() {
 //    }
 
     let result = parser::parse_class_file(&mut buffer);
-    println!("{:#?}", result);
+    match result {
+        Ok(class_file) => {
+            class_file.debug();
+        }
+        Err(e) => {
+            println!("{:?}", e);
+        }
+    }
 
     ()
 }

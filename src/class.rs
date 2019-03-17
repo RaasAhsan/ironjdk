@@ -1,23 +1,66 @@
 
 // Low-level representations of a ClassFile
 
+use disassembler::disassemble_code;
+
 pub struct ClassFile {
-    magic: u32,
-    minor_version: u16,
-    major_version: u16,
-    constant_pool: Vec<ConstantPoolEntry>,
-    access_flags: u16,
-    this_class: u16,
-    super_class: u16,
-    interfaces: Vec<u16>,
-    fields: Vec<Field>,
-    methods: Vec<Method>,
-    attributes: Vec<Attribute>
+    pub magic: u32,
+    pub minor_version: u16,
+    pub major_version: u16,
+    pub constant_pool: ConstantPool,
+    pub access_flags: u16,
+    pub this_class: u16,
+    pub super_class: u16,
+    pub interfaces: Vec<u16>,
+    pub fields: Vec<Field>,
+    pub methods: Vec<Method>,
+    pub attributes: Vec<Attribute>
 }
 
-pub struct ConstantPoolInfo {
-    tag: u8,
-    info: Vec<u8>
+impl ClassFile {
+
+    pub fn debug(&self) -> () {
+//        println!("Magic: {:X}", self.magic);
+//        println!("Minor version: {}", self.minor_version);
+//        println!("Major version: {}", self.major_version);
+//        println!("{:#?}", self.constant_pool);
+//        println!("Access flags: {:#04X}", self.access_flags);
+//        println!("This class: {:?}", self.constant_pool.get(self.this_class - 1));
+//        println!("Super class: {:?}", self.constant_pool.get(self.super_class - 1));
+//        println!("{:#?}", self.interfaces);
+//        println!("{:#?}", self.fields);
+//        println!("{:#?}", self.methods);
+//        println!("{:#?}", self.attributes);
+
+        for m in &self.methods {
+            let method_name = self.constant_pool.get_utf8(m.name_index);
+
+            match method_name {
+                Ok(name) => {
+                    println!("Method: {}", name);
+                    for a in &m.attributes {
+                        match a {
+                            &Attribute::Code { ref code, .. } => {
+                                let mut code_buffer = code.clone();
+                                let disassemble_result = disassemble_code(&mut code_buffer);
+
+                                match disassemble_result {
+                                    Ok(instructions) => {
+                                        println!("Code: ");
+                                        println!("{:#?}", instructions);
+                                    },
+                                    Err(_) => {}
+                                }
+                            },
+                            _ => {}
+                        }
+                    }
+                },
+                Err(_) => {}
+            }
+        }
+    }
+
 }
 
 pub enum ConstantPoolTag {
@@ -35,10 +78,6 @@ pub enum ConstantPoolTag {
     MethodHandle,
     MethodType,
     InvokeDynamic
-}
-
-impl ConstantPoolTag {
-
 }
 
 #[derive(Debug)]
@@ -71,7 +110,6 @@ impl ConstantPool {
 
 }
 
-// High
 #[derive(Debug)]
 pub enum ConstantPoolEntry {
     Class { name_index: u16 },

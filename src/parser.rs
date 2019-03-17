@@ -5,7 +5,7 @@ use class::Attribute;
 use class::Method;
 use class::ExceptionTableEntry;
 use class::LineNumberTableEntry;
-use disassembler::disassemble_code;
+use class::ClassFile;
 
 const MAGIC_NUMBER: u32 = 0xCAFEBABE;
 
@@ -30,72 +30,41 @@ pub enum ParserError {
     InvalidAttributeName(String)
 }
 
-pub fn parse_class_file(buffer: &mut Vec<u8>) -> Result<(), ParserError> {
+pub fn parse_class_file(buffer: &mut Vec<u8>) -> Result<ClassFile, ParserError> {
     let magic = parse_magic(buffer)?;
     let minor_version = parse_u16(buffer)?;
     let major_version = parse_u16(buffer)?;
     let cp_count = parse_u16(buffer)?;
     let cp_entries = parse_constant_pool_entries(buffer, cp_count - 1)?;
-    let cp = ConstantPool { entries: cp_entries };
+    let constant_pool = ConstantPool { entries: cp_entries };
     let access_flags = parse_u16(buffer)?;
     let this_class = parse_u16(buffer)?;
     let super_class = parse_u16(buffer)?;
     let interfaces_count = parse_u16(buffer)?;
-//    let interfaces =
+    let interfaces = parse_u16_array(buffer, interfaces_count)?;
     let fields_count = parse_u16(buffer)?;
-    let fields = parse_fields(buffer, fields_count, &cp)?;
+    let fields = parse_fields(buffer, fields_count, &constant_pool)?;
     let methods_count = parse_u16(buffer)?;
-    let methods = parse_methods(buffer, methods_count, &cp)?;
+    let methods = parse_methods(buffer, methods_count, &constant_pool)?;
     let attributes_count = parse_u16(buffer)?;
-    let attributes = parse_attributes(buffer, attributes_count, &cp)?;
+    let attributes = parse_attributes(buffer, attributes_count, &constant_pool)?;
 
-    println!("Magic: {:X}", magic);
-    println!("Minor version: {}", minor_version);
-    println!("Major version: {}", major_version);
-    println!("Constant pool count: {}", cp_count);
-    println!("Constant pool entries count: {}", cp.size());
-    println!("{:#?}", cp);
-    println!("Access flags: {:#04X}", access_flags);
-    println!("This class: {:?}", cp.get(this_class - 1));
-    println!("Super class: {:?}", cp.get(super_class - 1));
-    println!("Interfaces count: {}", interfaces_count);
-    println!("Fields count: {}", fields_count);
-    println!("{:#?}", fields);
-    println!("Methods count: {}", methods_count);
-    println!("{:#?}", methods);
-    println!("Attributes count: {}", attributes_count);
-    println!("{:#?}", attributes);
-
-    for m in methods {
-        let method_name = cp.get_utf8(m.name_index);
-
-        match method_name {
-            Ok(name) => {
-                println!("Method: {}", name);
-                for a in m.attributes {
-                    match a {
-                        Attribute::Code { code, .. } => {
-                            let mut code_buffer = code.clone();
-                            let disassemble_result = disassemble_code(&mut code_buffer);
-
-                            match disassemble_result {
-                                Ok(instructions) => {
-                                    println!("Code: ");
-                                    println!("{:#?}", instructions);
-                                },
-                                Err(e) => {}
-                            }
-                        },
-                        _ => {}
-                    }
-                }
-            },
-            Err(e) => {}
-        }
-    }
+    let class_file = ClassFile {
+        magic,
+        minor_version,
+        major_version,
+        constant_pool,
+        access_flags,
+        this_class,
+        super_class,
+        interfaces,
+        fields,
+        methods,
+        attributes
+    };
 
     if buffer.len() == 0 {
-        Ok(())
+        Ok(class_file)
     } else {
         Err(ParserError::RemainingBytes)
     }
@@ -297,6 +266,17 @@ fn parse_u16(buffer: &mut Vec<u8>) -> Result<u16, ParserError> {
     let b2 = parse_u8(buffer)? as u16;
 
     Ok((b1 << 8) + b2)
+}
+
+fn parse_u16_array(buffer: &mut Vec<u8>, length: u16) -> Result<Vec<u16>, ParserError> {
+    let mut entries: Vec<u16> = Vec::new();
+
+    for index in 0..length {
+        let entry = parse_u16(buffer)?;
+        entries.push(entry);
+    }
+
+    Ok(entries)
 }
 
 fn parse_u32(buffer: &mut Vec<u8>) -> Result<u32, ParserError> {

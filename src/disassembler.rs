@@ -3,6 +3,7 @@ use instruction::Instruction;
 const AALOAD: u8 = 0x32;
 const AASTORE: u8 = 0x53;
 const ACONST_NULL: u8 = 0x01;
+const ALOAD: u8 = 0x19;
 const ALOAD_0: u8 = 0x2a;
 const ALOAD_1: u8 = 0x2b;
 const ALOAD_2: u8 = 0x2c;
@@ -222,18 +223,22 @@ fn parse_instruction(bytes: &mut Vec<u8>) -> Result<Instruction, DisassemblerErr
     let opcode = parse_u8(bytes)?;
 
     match opcode {
-        x if x == AALOAD=> Ok(Instruction::Aaload),
+        x if x == AALOAD => Ok(Instruction::Aaload),
         x if x == AASTORE => Ok(Instruction::Aastore),
         x if x == ACONST_NULL => Ok(Instruction::AconstNull),
+        x if x == ALOAD => {
+            let index = parse_u8(bytes)?;
+
+            Ok(Instruction::Aload { index })
+        },
         x if x == ALOAD_0 => Ok(Instruction::Aload0),
         x if x == ALOAD_1 => Ok(Instruction::Aload1),
         x if x == ALOAD_2 => Ok(Instruction::Aload2),
         x if x == ALOAD_3 => Ok(Instruction::Aload3),
         x if x == ANEWARRAY => {
-            let indexbyte1 = parse_u8(bytes)?;
-            let indexbyte2 = parse_u8(bytes)?;
+            let index = parse_u16(bytes)?;
 
-            Ok(Instruction::Anewarray { indexbyte1, indexbyte2 })
+            Ok(Instruction::Anewarray { index })
         },
         x if x == ARETURN => Ok(Instruction::Areturn),
         x if x == ARRAYLENGTH => Ok(Instruction::Arraylength),
@@ -257,10 +262,9 @@ fn parse_instruction(bytes: &mut Vec<u8>) -> Result<Instruction, DisassemblerErr
         x if x == CALOAD => Ok(Instruction::Caload),
         x if x == CASTORE => Ok(Instruction::Castore),
         x if x == CHECKCAST => {
-            let indexbyte1 = parse_u8(bytes)?;
-            let indexbyte2 = parse_u8(bytes)?;
+            let index = parse_u16(bytes)?;
 
-            Ok(Instruction::Checkcast { indexbyte1, indexbyte2 })
+            Ok(Instruction::Checkcast { index })
         },
         x if x == D2F => Ok(Instruction::D2f),
         x if x == D2I => Ok(Instruction::D2i),
@@ -338,16 +342,14 @@ fn parse_instruction(bytes: &mut Vec<u8>) -> Result<Instruction, DisassemblerErr
         x if x == FSTORE_3 => Ok(Instruction::Fstore3),
         x if x == FSUB => Ok(Instruction::Fsub),
         x if x == GETFIELD => {
-            let indexbyte1 = parse_u8(bytes)?;
-            let indexbyte2 = parse_u8(bytes)?;
+            let index = parse_u16(bytes)?;
 
-            Ok(Instruction::Getfield { indexbyte1, indexbyte2 })
+            Ok(Instruction::Getfield { index })
         },
         x if x == GETSTATIC => {
-            let indexbyte1 = parse_u8(bytes)?;
-            let indexbyte2 = parse_u8(bytes)?;
+            let index = parse_u16(bytes)?;
 
-            Ok(Instruction::Getstatic { indexbyte1, indexbyte2 })
+            Ok(Instruction::Getstatic { index })
         },
         x if x == GOTO => {
             let branchbyte1 = parse_u8(bytes)?;
@@ -367,6 +369,7 @@ fn parse_instruction(bytes: &mut Vec<u8>) -> Result<Instruction, DisassemblerErr
         x if x == I2C => Ok(Instruction::I2c),
         x if x == I2D => Ok(Instruction::I2d),
         x if x == I2F => Ok(Instruction::I2f),
+        x if x == I2S => Ok(Instruction::I2s),
         x if x == I2L => Ok(Instruction::I2l),
         x if x == IADD => Ok(Instruction::Iadd),
         x if x == IALOAD => Ok(Instruction::Iaload),
@@ -494,46 +497,40 @@ fn parse_instruction(bytes: &mut Vec<u8>) -> Result<Instruction, DisassemblerErr
         x if x == IMUL => Ok(Instruction::Imul),
         x if x == INEG => Ok(Instruction::Ineg),
         x if x == INSTANCEOF => {
-            let indexbyte1 = parse_u8(bytes)?;
-            let indexbyte2 = parse_u8(bytes)?;
+            let index = parse_u16(bytes)?;
 
-            Ok(Instruction::Instanceof { indexbyte1, indexbyte2 })
+            Ok(Instruction::Instanceof { index })
         },
         x if x == INVOKEDYNAMIC => {
-            let indexbyte1 = parse_u8(bytes)?;
-            let indexbyte2 = parse_u8(bytes)?;
+            let index = parse_u16(bytes)?;
             let z1 = parse_u8(bytes)?;
             let z2 = parse_u8(bytes)?;
 
-            Ok(Instruction::Invokedynamic { indexbyte1, indexbyte2 })
+            Ok(Instruction::Invokedynamic { index})
         },
         x if x == INVOKEINTERFACE => {
-            let indexbyte1 = parse_u8(bytes)?;
-            let indexbyte2 = parse_u8(bytes)?;
+            let index = parse_u16(bytes)?;
             let count = parse_u8(bytes)?;
             let z1 = parse_u8(bytes)?;
 
-            Ok(Instruction::Invokeinterface { indexbyte1, indexbyte2, count })
+            Ok(Instruction::Invokeinterface { index, count })
         },
         x if x == INVOKESPECIAL => {
-            let indexbyte1 = parse_u8(bytes)?;
-            let indexbyte2 = parse_u8(bytes)?;
+            let index = parse_u16(bytes)?;
 
-            Ok(Instruction::Invokespecial { indexbyte1, indexbyte2 })
+            Ok(Instruction::Invokespecial { index })
         },
         x if x == INVOKESTATIC => {
-            let indexbyte1 = parse_u8(bytes)?;
-            let indexbyte2 = parse_u8(bytes)?;
+            let index = parse_u16(bytes)?;
 
-            Ok(Instruction::Invokestatic { indexbyte1, indexbyte2 })
+            Ok(Instruction::Invokestatic { index })
         },
         x if x == INVOKEVIRTUAL => {
-            let indexbyte1 = parse_u8(bytes)?;
-            let indexbyte2 = parse_u8(bytes)?;
+            let index = parse_u16(bytes)?;
 
-            Ok(Instruction::Invokevirtual { indexbyte1, indexbyte2 })
+            Ok(Instruction::Invokevirtual { index })
         },
-        x if x == IOR=> Ok(Instruction::Ior),
+        x if x == IOR => Ok(Instruction::Ior),
         x if x == IREM => Ok(Instruction::Irem),
         x if x == IRETURN => Ok(Instruction::Ireturn),
         x if x == ISHL => Ok(Instruction::Ishl),
@@ -580,16 +577,14 @@ fn parse_instruction(bytes: &mut Vec<u8>) -> Result<Instruction, DisassemblerErr
             Ok(Instruction::Ldc { index })
         },
         x if x == LDC_W => {
-            let indexbyte1 = parse_u8(bytes)?;
-            let indexbyte2 = parse_u8(bytes)?;
+            let index = parse_u16(bytes)?;
 
-            Ok(Instruction::LdcW { indexbyte1, indexbyte2 })
+            Ok(Instruction::LdcW { index })
         },
         x if x == LDC2_W => {
-            let indexbyte1 = parse_u8(bytes)?;
-            let indexbyte2 = parse_u8(bytes)?;
+            let index = parse_u16(bytes)?;
 
-            Ok(Instruction::Ldc2W { indexbyte1, indexbyte2 })
+            Ok(Instruction::Ldc2W { index })
         },
         x if x == LDIV => Ok(Instruction::Ldiv),
         x if x == LLOAD => {
@@ -605,6 +600,7 @@ fn parse_instruction(bytes: &mut Vec<u8>) -> Result<Instruction, DisassemblerErr
         x if x == LNEG => Ok(Instruction::Lneg),
         x if x == LOOKUPSWITCH => Ok(Instruction::Lookupswitch {}),
         x if x == LOR => Ok(Instruction::Lor),
+        x if x == LREM => Ok(Instruction::Lrem),
         x if x == LRETURN => Ok(Instruction::Lreturn),
         x if x == LSHL => Ok(Instruction::Lshl),
         x if x == LSHR => Ok(Instruction::Lshr),
@@ -623,17 +619,15 @@ fn parse_instruction(bytes: &mut Vec<u8>) -> Result<Instruction, DisassemblerErr
         x if x == MONITORENTER => Ok(Instruction::Monitorenter),
         x if x == MONITOREXIT => Ok(Instruction::Monitorexit),
         x if x == MULTIANEWARRAY => {
-            let indexbyte1 = parse_u8(bytes)?;
-            let indexbyte2 = parse_u8(bytes)?;
+            let index = parse_u16(bytes)?;
             let dimensions = parse_u8(bytes)?;
 
-            Ok(Instruction::Multianewarray { indexbyte1, indexbyte2, dimensions })
+            Ok(Instruction::Multianewarray { index, dimensions })
         },
         x if x == NEW => {
-            let indexbyte1 = parse_u8(bytes)?;
-            let indexbyte2 = parse_u8(bytes)?;
+            let index = parse_u16(bytes)?;
 
-            Ok(Instruction::New { indexbyte1, indexbyte2 })
+            Ok(Instruction::New { index })
         },
         x if x == NEWARRAY => {
             let atype = parse_u8(bytes)?;
@@ -644,16 +638,14 @@ fn parse_instruction(bytes: &mut Vec<u8>) -> Result<Instruction, DisassemblerErr
         x if x == POP => Ok(Instruction::Pop),
         x if x == POP2 => Ok(Instruction::Pop2),
         x if x == PUTFIELD => {
-            let indexbyte1 = parse_u8(bytes)?;
-            let indexbyte2 = parse_u8(bytes)?;
+            let index = parse_u16(bytes)?;
 
-            Ok(Instruction::Putfield { indexbyte1, indexbyte2 })
+            Ok(Instruction::Putfield { index })
         },
         x if x == PUTSTATIC => {
-            let indexbyte1 = parse_u8(bytes)?;
-            let indexbyte2 = parse_u8(bytes)?;
+            let index = parse_u16(bytes)?;
 
-            Ok(Instruction::Putstatic { indexbyte1, indexbyte2 })
+            Ok(Instruction::Putstatic { index })
         },
         x if x == RET => {
             let index = parse_u8(bytes)?;
@@ -684,4 +676,11 @@ fn parse_u8(buffer: &mut Vec<u8>) -> Result<u8, DisassemblerError> {
         },
         None => Err(DisassemblerError::EndOfCode)
     }
+}
+
+fn parse_u16(buffer: &mut Vec<u8>) -> Result<u16, DisassemblerError> {
+    let b1 = parse_u8(buffer)? as u16;
+    let b2 = parse_u8(buffer)? as u16;
+
+    Ok((b1 << 8) + b2)
 }
