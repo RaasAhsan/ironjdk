@@ -20,25 +20,25 @@ pub struct ClassFile {
 impl ClassFile {
 
     pub fn debug(&self) -> () {
-//        println!("Magic: {:X}", self.magic);
-//        println!("Minor version: {}", self.minor_version);
-//        println!("Major version: {}", self.major_version);
-//        println!("{:#?}", self.constant_pool);
-//        println!("Access flags: {:#04X}", self.access_flags);
-//        println!("This class: {:?}", self.constant_pool.get(self.this_class - 1));
-//        println!("Super class: {:?}", self.constant_pool.get(self.super_class - 1));
-//        println!("{:#?}", self.interfaces);
-//        println!("{:#?}", self.fields);
-//        println!("{:#?}", self.methods);
-//        println!("{:#?}", self.attributes);
+        println!("Magic: {:X}", self.magic);
+        println!("Minor version: {}", self.minor_version);
+        println!("Major version: {}", self.major_version);
+        println!("{:#?}", self.constant_pool);
+        println!("Access flags: {:#04X}", self.access_flags);
+        println!("This class: {:?}", self.constant_pool.get(self.this_class - 1));
+        println!("Super class: {:?}", self.constant_pool.get(self.super_class - 1));
+        println!("{:#?}", self.interfaces);
+        println!("{:#?}", self.fields);
+        println!("{:#?}", self.methods);
+        println!("{:#?}", self.attributes);
 
-        for m in &self.methods {
+        for m in self.methods.iter() {
             let method_name = self.constant_pool.get_utf8(m.name_index);
 
             match method_name {
                 Ok(name) => {
                     println!("Method: {}", name);
-                    for a in &m.attributes {
+                    for a in m.attributes.iter() {
                         match a {
                             &Attribute::Code { ref code, .. } => {
                                 let mut code_buffer = code.clone();
