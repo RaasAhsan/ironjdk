@@ -19,15 +19,35 @@ pub struct ClassFile {
 
 impl ClassFile {
 
+    pub fn is_java_lang_object(&self) -> bool {
+        self.super_class == 0
+    }
+
+    pub fn print_constant_pool(&self) {
+        for i in 1 ..(self.constant_pool.size()) {
+            let entry = self.constant_pool.get(i as u16);
+
+            match entry {
+                Some( e) => match e {
+                    &ConstantPoolEntry::Placeholder => {}
+                    _ => {
+                        println!("{}: {:?}", i, e);
+                    }
+                }
+                None => {}
+            }
+        }
+    }
+
     pub fn debug(&self) -> () {
         println!("Magic: {:X}", self.magic);
         println!("Minor version: {}", self.minor_version);
         println!("Major version: {}", self.major_version);
         println!("{:#?}", self.constant_pool);
         println!("Access flags: {:#04X}", self.access_flags);
-        println!("This class: {:?}", self.constant_pool.get(self.this_class - 1));
-        if self.super_class > 0 {
-            println!("Super class: {:?}", self.constant_pool.get(self.super_class - 1));
+        println!("This class: {:?}", self.constant_pool.get(self.this_class));
+        if !self.is_java_lang_object() {
+            println!("Super class: {:?}", self.constant_pool.get(self.super_class));
         }
         println!("{:#?}", self.interfaces);
         println!("{:#?}", self.fields);
@@ -112,7 +132,7 @@ impl ConstantPool {
 
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub enum ConstantPoolEntry {
     Class { name_index: u16 },
     Fieldref { class_index: u16, name_and_type_index: u16 },
@@ -127,7 +147,9 @@ pub enum ConstantPoolEntry {
     Utf8(String),
     MethodHandle { reference_kind: u8, reference_index: u16 },
     MethodType { descriptor_index: u16 },
-    InvokeDynamic { bootstrap_method_attr_index: u16, name_and_type_index: u16 }
+    InvokeDynamic { bootstrap_method_attr_index: u16, name_and_type_index: u16 },
+
+    Placeholder
 }
 
 #[derive(Debug)]
@@ -189,7 +211,7 @@ pub struct AttributeInfo {
 
 #[derive(Debug)]
 pub enum Attribute {
-    ConstantValue { constantvalue_index: u16 },
+    ConstantValue { index: u16 },
     Code {
         max_stack: u16,
         max_locals: u16,
@@ -248,18 +270,18 @@ pub enum VerificationTypeInfo {
 
 #[derive(Debug)]
 pub struct ExceptionTableEntry {
-    start_pc: u16,
-    end_pc: u16,
-    handler_pc: u16,
-    catch_type: u16
+    pub start_pc: u16,
+    pub end_pc: u16,
+    pub handler_pc: u16,
+    pub catch_type: u16
 }
 
 #[derive(Debug)]
 pub struct InnerClassTableEntry {
-    inner_class_info_index: u16,
-    outer_class_info_index: u16,
-    inner_name_index: u16,
-    inner_class_access_flags: u16
+    pub inner_class_info_index: u16,
+    pub outer_class_info_index: u16,
+    pub inner_name_index: u16,
+    pub inner_class_access_flags: u16
 }
 
 #[derive(Debug)]
