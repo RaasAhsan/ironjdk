@@ -20,7 +20,7 @@ const ATTRIBUTE_SOURCE_FILE: &str = "SourceFile";
 const ATTRIBUTE_LINE_NUMBER_TABLE: &str = "LineNumberTable";
 
 #[derive(Debug)]
-pub enum ClassLoaderError {
+pub enum ClassReaderError {
     EndOfStream,
     InvalidMagic(u32),
     InvalidConstantTag(u8),
@@ -30,7 +30,7 @@ pub enum ClassLoaderError {
     InvalidAttributeName(String)
 }
 
-pub fn read_class_file(buffer: &mut Vec<u8>) -> Result<ClassFile, ClassLoaderError> {
+pub fn read_class_file(buffer: &mut Vec<u8>) -> Result<ClassFile, ClassReaderError> {
     let magic = read_magic(buffer)?;
     let minor_version = read_u16(buffer)?;
     let major_version = read_u16(buffer)?;
@@ -66,21 +66,21 @@ pub fn read_class_file(buffer: &mut Vec<u8>) -> Result<ClassFile, ClassLoaderErr
     if buffer.len() == 0 {
         Ok(class_file)
     } else {
-        Err(ClassLoaderError::RemainingBytes)
+        Err(ClassReaderError::RemainingBytes)
     }
 }
 
-fn read_magic(buffer: &mut Vec<u8>) -> Result<u32, ClassLoaderError> {
+fn read_magic(buffer: &mut Vec<u8>) -> Result<u32, ClassReaderError> {
     let magic = read_u32(buffer)?;
 
     if magic == MAGIC_NUMBER {
         Ok(magic)
     } else {
-        Err(ClassLoaderError::InvalidMagic(magic))
+        Err(ClassReaderError::InvalidMagic(magic))
     }
 }
 
-fn read_constant_pool_entries(buffer: &mut Vec<u8>, length: u16) -> Result<Vec<ConstantPoolEntry>, ClassLoaderError> {
+fn read_constant_pool_entries(buffer: &mut Vec<u8>, length: u16) -> Result<Vec<ConstantPoolEntry>, ClassReaderError> {
     let mut entries: Vec<ConstantPoolEntry> = Vec::new();
 
     for index in 0..length {
@@ -91,7 +91,7 @@ fn read_constant_pool_entries(buffer: &mut Vec<u8>, length: u16) -> Result<Vec<C
     Ok(entries)
 }
 
-fn read_constant_pool_entry(buffer: &mut Vec<u8>) -> Result<ConstantPoolEntry, ClassLoaderError> {
+fn read_constant_pool_entry(buffer: &mut Vec<u8>) -> Result<ConstantPoolEntry, ClassReaderError> {
     let tag = read_u8(buffer)?;
 
     match tag {
@@ -124,11 +124,11 @@ fn read_constant_pool_entry(buffer: &mut Vec<u8>) -> Result<ConstantPoolEntry, C
 
             Ok(ConstantPoolEntry::NameAndType { name_index, descriptor_index })
         },
-        x => Err(ClassLoaderError::InvalidConstantTag(x))
+        x => Err(ClassReaderError::InvalidConstantTag(x))
     }
 }
 
-fn read_fields(buffer: &mut Vec<u8>, length: u16, cp: &ConstantPool) -> Result<Vec<Field>, ClassLoaderError> {
+fn read_fields(buffer: &mut Vec<u8>, length: u16, cp: &ConstantPool) -> Result<Vec<Field>, ClassReaderError> {
     let mut entries: Vec<Field> = Vec::new();
 
     for index in 0..length {
@@ -139,7 +139,7 @@ fn read_fields(buffer: &mut Vec<u8>, length: u16, cp: &ConstantPool) -> Result<V
     Ok(entries)
 }
 
-fn read_field(buffer: &mut Vec<u8>, cp: &ConstantPool) -> Result<Field, ClassLoaderError> {
+fn read_field(buffer: &mut Vec<u8>, cp: &ConstantPool) -> Result<Field, ClassReaderError> {
     let access_flags = read_u16(buffer)?;
     let name_index = read_u16(buffer)?;
     let descriptor_index = read_u16(buffer)?;
@@ -151,7 +151,7 @@ fn read_field(buffer: &mut Vec<u8>, cp: &ConstantPool) -> Result<Field, ClassLoa
     Ok(field)
 }
 
-fn read_methods(buffer: &mut Vec<u8>, length: u16, cp: &ConstantPool) -> Result<Vec<Method>, ClassLoaderError> {
+fn read_methods(buffer: &mut Vec<u8>, length: u16, cp: &ConstantPool) -> Result<Vec<Method>, ClassReaderError> {
     let mut entries: Vec<Method> = Vec::new();
 
     for index in 0..length {
@@ -162,7 +162,7 @@ fn read_methods(buffer: &mut Vec<u8>, length: u16, cp: &ConstantPool) -> Result<
     Ok(entries)
 }
 
-fn read_method(buffer: &mut Vec<u8>, cp: &ConstantPool) -> Result<Method, ClassLoaderError> {
+fn read_method(buffer: &mut Vec<u8>, cp: &ConstantPool) -> Result<Method, ClassReaderError> {
     let access_flags = read_u16(buffer)?;
     let name_index = read_u16(buffer)?;
     let descriptor_index = read_u16(buffer)?;
@@ -174,7 +174,7 @@ fn read_method(buffer: &mut Vec<u8>, cp: &ConstantPool) -> Result<Method, ClassL
     Ok(method)
 }
 
-fn read_attributes(buffer: &mut Vec<u8>, length: u16, cp: &ConstantPool) -> Result<Vec<Attribute>, ClassLoaderError> {
+fn read_attributes(buffer: &mut Vec<u8>, length: u16, cp: &ConstantPool) -> Result<Vec<Attribute>, ClassReaderError> {
     let mut entries: Vec<Attribute> = Vec::new();
 
     for index in 0..length {
@@ -185,13 +185,13 @@ fn read_attributes(buffer: &mut Vec<u8>, length: u16, cp: &ConstantPool) -> Resu
     Ok(entries)
 }
 
-fn read_attribute(buffer: &mut Vec<u8>, cp: &ConstantPool) -> Result<Attribute, ClassLoaderError> {
+fn read_attribute(buffer: &mut Vec<u8>, cp: &ConstantPool) -> Result<Attribute, ClassReaderError> {
     let attribute_name_index = read_u16(buffer)?;
     let attribute_length = read_u32(buffer)?;
     let ref mut attribute_buffer = read_bytes(buffer, attribute_length as usize)?;
 
     let attribute_name = cp.get_utf8(attribute_name_index)
-        .map_err(|x| ClassLoaderError::ExpectedAttributeName)?;
+        .map_err(|x| ClassReaderError::ExpectedAttributeName)?;
 
     let attribute_option = match attribute_name.as_ref() {
         ATTRIBUTE_CODE => {
@@ -224,16 +224,16 @@ fn read_attribute(buffer: &mut Vec<u8>, cp: &ConstantPool) -> Result<Attribute, 
         Some(attribute) => {
             if attribute_buffer.len() > 0 {
                 println!("Failed to parse attribute {}", attribute_name);
-                Err(ClassLoaderError::RemainingBytes)
+                Err(ClassReaderError::RemainingBytes)
             } else {
                 Ok(attribute)
             }
         },
-        None => Err(ClassLoaderError::InvalidAttributeName(attribute_name))
+        None => Err(ClassReaderError::InvalidAttributeName(attribute_name))
     }
 }
 
-fn read_line_number_table_entries(buffer: &mut Vec<u8>, length: u16) -> Result<Vec<LineNumberTableEntry>, ClassLoaderError> {
+fn read_line_number_table_entries(buffer: &mut Vec<u8>, length: u16) -> Result<Vec<LineNumberTableEntry>, ClassReaderError> {
     let mut entries: Vec<LineNumberTableEntry> = Vec::new();
 
     for index in 0..length {
@@ -244,31 +244,31 @@ fn read_line_number_table_entries(buffer: &mut Vec<u8>, length: u16) -> Result<V
     Ok(entries)
 }
 
-fn read_line_number_table_entry(buffer: &mut Vec<u8>) -> Result<LineNumberTableEntry, ClassLoaderError> {
+fn read_line_number_table_entry(buffer: &mut Vec<u8>) -> Result<LineNumberTableEntry, ClassReaderError> {
     let start_pc = read_u16(buffer)?;
     let line_number = read_u16(buffer)?;
 
     Ok(LineNumberTableEntry { start_pc, line_number })
 }
 
-fn read_u8(buffer: &mut Vec<u8>) -> Result<u8, ClassLoaderError> {
+fn read_u8(buffer: &mut Vec<u8>) -> Result<u8, ClassReaderError> {
     match buffer.get(0) {
         Some(&byte) => {
             buffer.remove(0);
             Ok(byte)
         },
-        None => Err(ClassLoaderError::EndOfStream)
+        None => Err(ClassReaderError::EndOfStream)
     }
 }
 
-fn read_u16(buffer: &mut Vec<u8>) -> Result<u16, ClassLoaderError> {
+fn read_u16(buffer: &mut Vec<u8>) -> Result<u16, ClassReaderError> {
     let b1 = read_u8(buffer)? as u16;
     let b2 = read_u8(buffer)? as u16;
 
     Ok((b1 << 8) + b2)
 }
 
-fn read_u16_array(buffer: &mut Vec<u8>, length: u16) -> Result<Vec<u16>, ClassLoaderError> {
+fn read_u16_array(buffer: &mut Vec<u8>, length: u16) -> Result<Vec<u16>, ClassReaderError> {
     let mut entries: Vec<u16> = Vec::new();
 
     for index in 0..length {
@@ -279,7 +279,7 @@ fn read_u16_array(buffer: &mut Vec<u8>, length: u16) -> Result<Vec<u16>, ClassLo
     Ok(entries)
 }
 
-fn read_u32(buffer: &mut Vec<u8>) -> Result<u32, ClassLoaderError> {
+fn read_u32(buffer: &mut Vec<u8>) -> Result<u32, ClassReaderError> {
     let b1 = read_u8(buffer)? as u32;
     let b2 = read_u8(buffer)? as u32;
     let b3 = read_u8(buffer)? as u32;
@@ -288,17 +288,17 @@ fn read_u32(buffer: &mut Vec<u8>) -> Result<u32, ClassLoaderError> {
     Ok((b1 << 24) + (b2 << 16) + (b3 << 8) + b4)
 }
 
-fn read_utf8(buffer: &mut Vec<u8>, length: usize) -> Result<String, ClassLoaderError> {
+fn read_utf8(buffer: &mut Vec<u8>, length: usize) -> Result<String, ClassReaderError> {
     let bytes = read_bytes(buffer, length)?;
     let string = String::from_utf8(bytes)
-        .map_err(|x| ClassLoaderError::InvalidUtf8)?;
+        .map_err(|x| ClassReaderError::InvalidUtf8)?;
 
     Ok(string)
 }
 
-fn read_bytes(buffer: &mut Vec<u8>, length: usize) -> Result<Vec<u8>, ClassLoaderError> {
+fn read_bytes(buffer: &mut Vec<u8>, length: usize) -> Result<Vec<u8>, ClassReaderError> {
     if buffer.len() < length {
-        Err(ClassLoaderError::EndOfStream)
+        Err(ClassReaderError::EndOfStream)
     } else {
         let mut bytes: Vec<u8> = Vec::new();
 

@@ -2,7 +2,7 @@ use std::io::prelude::*;
 use std::fs::File;
 
 mod class;
-mod classloader;
+mod classreader;
 mod disassembler;
 mod instruction;
 
@@ -26,7 +26,7 @@ fn main() {
 //        println!("{:02X} = {}", x, x);
 //    }
 
-    let result = classloader::parse_class_file(&mut buffer);
+    let result = classreader::parse_class_file(&mut buffer);
     match result {
         Ok(class_file) => {
             class_file.debug();
