@@ -475,8 +475,8 @@ fn read_stack_map_frame(buffer: &mut Vec<u8>) -> Result<StackMapFrame, ClassRead
     let frame_type = read_u8(buffer)?;
 
     match frame_type {
-        0 ... 63 => Ok(StackMapFrame::SameFrame),
-        64 ... 127 => {
+        0 ..= 63 => Ok(StackMapFrame::SameFrame),
+        64 ..= 127 => {
             let info = read_verification_type_info(buffer)?;
             Ok(StackMapFrame::SameLocals1StackItemFrame { info })
         },
@@ -484,7 +484,7 @@ fn read_stack_map_frame(buffer: &mut Vec<u8>) -> Result<StackMapFrame, ClassRead
             let info = read_verification_type_info(buffer)?;
             Ok(StackMapFrame::SameLocals1StackItemFrameExtended { info })
         },
-        248 ... 250 => {
+        248 ..= 250 => {
             let offset_delta = read_u16(buffer)?;
             Ok(StackMapFrame::ChopFrame { offset_delta })
         },
@@ -492,7 +492,7 @@ fn read_stack_map_frame(buffer: &mut Vec<u8>) -> Result<StackMapFrame, ClassRead
             let offset_delta = read_u16(buffer)?;
             Ok(StackMapFrame::SameFrameExtended { offset_delta })
         },
-        x @ 252 ... 254 => {
+        x @ 252 ..= 254 => {
             let offset_delta = read_u16(buffer)?;
             let locals = read_verification_type_infos(buffer, (x - 251) as u16)?;
             Ok(StackMapFrame::AppendFrame { offset_delta, locals })
