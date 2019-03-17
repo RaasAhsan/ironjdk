@@ -17,7 +17,7 @@ fn longer<'a>(s1: &'a str, s2: &'a str) -> &'a str {
 fn main() {
     println!("IronJDK 1.0.0");
 
-    let mut file = File::open("Counter.class").unwrap();
+    let mut file = File::open("rt/java/lang/Object.class").unwrap();
     let mut buffer = Vec::new();
 
     file.read_to_end(&mut buffer).unwrap();
@@ -26,7 +26,7 @@ fn main() {
 //        println!("{:02X} = {}", x, x);
 //    }
 
-    let result = classreader::parse_class_file(&mut buffer);
+    let result = classreader::read_class_file(&mut buffer);
     match result {
         Ok(class_file) => {
             class_file.debug();

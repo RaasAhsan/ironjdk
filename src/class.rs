@@ -26,7 +26,9 @@ impl ClassFile {
         println!("{:#?}", self.constant_pool);
         println!("Access flags: {:#04X}", self.access_flags);
         println!("This class: {:?}", self.constant_pool.get(self.this_class - 1));
-        println!("Super class: {:?}", self.constant_pool.get(self.super_class - 1));
+        if self.super_class > 0 {
+            println!("Super class: {:?}", self.constant_pool.get(self.super_class - 1));
+        }
         println!("{:#?}", self.interfaces);
         println!("{:#?}", self.fields);
         println!("{:#?}", self.methods);
@@ -195,11 +197,12 @@ pub enum Attribute {
         exceptions: Vec<ExceptionTableEntry>,
         attributes: Vec<Attribute>
     },
-    StackMapTable {},
-    Exceptions { exceptions: Vec<u16> },
+    StackMapTable { entries: Vec<StackMapFrame> },
+    Exceptions { exception_index: Vec<u16> },
     InnerClasses { classes: Vec<InnerClassTableEntry> },
     EnclosingMethod {},
     Synthetic {},
+    Signature { index: u16 },
     SourceFile { index: u16 },
     SourceDebugExtension {},
     LineNumberTable(Vec<LineNumberTableEntry>),
@@ -213,6 +216,34 @@ pub enum Attribute {
     RuntimeInvisibleParameterAnnotations {},
     AnnotationDefault {},
     BootstrapMethods {}
+}
+
+#[derive(Debug)]
+pub enum StackMapFrame {
+    SameFrame,
+    SameLocals1StackItemFrame { info: VerificationTypeInfo },
+    SameLocals1StackItemFrameExtended { info: VerificationTypeInfo },
+    ChopFrame { offset_delta: u16 },
+    SameFrameExtended { offset_delta: u16 },
+    AppendFrame { offset_delta: u16, locals: Vec<VerificationTypeInfo> },
+    FullFrame {
+        offset_delta: u16,
+        locals: Vec<VerificationTypeInfo>,
+        stack: Vec<VerificationTypeInfo>
+    }
+}
+
+#[derive(Debug)]
+pub enum VerificationTypeInfo {
+    Top,
+    Integer,
+    Float,
+    Null,
+    UninitializedThis,
+    Object(u16),
+    Uninitialized(u16),
+    Long,
+    Double
 }
 
 #[derive(Debug)]

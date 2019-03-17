@@ -6,6 +6,8 @@ use class::Method;
 use class::ExceptionTableEntry;
 use class::LineNumberTableEntry;
 use class::ClassFile;
+use class::StackMapFrame;
+use class::VerificationTypeInfo;
 
 const MAGIC_NUMBER: u32 = 0xCAFEBABE;
 
@@ -14,10 +16,15 @@ const CONSTANT_FIELDREF: u8 = 9;
 const CONSTANT_CLASS: u8 = 7;
 const CONSTANT_UTF8: u8 = 1;
 const CONSTANT_NAME_AND_TYPE: u8 = 12;
+const CONSTANT_STRING: u8 = 8;
+const CONSTANT_INTEGER: u8 = 3;
 
 const ATTRIBUTE_CODE: &str = "Code";
 const ATTRIBUTE_SOURCE_FILE: &str = "SourceFile";
 const ATTRIBUTE_LINE_NUMBER_TABLE: &str = "LineNumberTable";
+const ATTRIBUTE_SIGNATURE: &str = "Signature";
+const ATTRIBUTE_STACK_MAP_TABLE: &str = "StackMapTable";
+const ATTRIBUTE_EXCEPTIONS: &str = "Exceptions";
 
 #[derive(Debug)]
 pub enum ClassReaderError {
@@ -27,7 +34,9 @@ pub enum ClassReaderError {
     InvalidUtf8,
     RemainingBytes,
     ExpectedAttributeName,
-    InvalidAttributeName(String)
+    InvalidAttributeName(String),
+    InvalidStackMapFrame(u8),
+    InvalidVerificationTypeInfo(u8)
 }
 
 pub fn read_class_file(buffer: &mut Vec<u8>) -> Result<ClassFile, ClassReaderError> {
@@ -124,6 +133,16 @@ fn read_constant_pool_entry(buffer: &mut Vec<u8>) -> Result<ConstantPoolEntry, C
 
             Ok(ConstantPoolEntry::NameAndType { name_index, descriptor_index })
         },
+        CONSTANT_STRING => {
+            let string_index = read_u16(buffer)?;
+
+            Ok(ConstantPoolEntry::String { string_index })
+        },
+        CONSTANT_INTEGER => {
+            let bytes = read_u32(buffer)?;
+
+            Ok(ConstantPoolEntry::Integer { bytes })
+        },
         x => Err(ClassReaderError::InvalidConstantTag(x))
     }
 }
@@ -174,6 +193,10 @@ fn read_method(buffer: &mut Vec<u8>, cp: &ConstantPool) -> Result<Method, ClassR
     Ok(method)
 }
 
+//
+// Read attributes
+//
+
 fn read_attributes(buffer: &mut Vec<u8>, length: u16, cp: &ConstantPool) -> Result<Vec<Attribute>, ClassReaderError> {
     let mut entries: Vec<Attribute> = Vec::new();
 
@@ -206,6 +229,12 @@ fn read_attribute(buffer: &mut Vec<u8>, cp: &ConstantPool) -> Result<Attribute, 
 
             Some(Attribute::Code { max_stack, max_locals, code, exceptions, attributes })
         },
+        ATTRIBUTE_STACK_MAP_TABLE => {
+            let number_of_entries = read_u16(attribute_buffer)?;
+            let entries = read_stack_map_frames(attribute_buffer, number_of_entries)?;
+
+            Some(Attribute::StackMapTable { entries })
+        },
         ATTRIBUTE_LINE_NUMBER_TABLE => {
             let line_number_table_length = read_u16(attribute_buffer)?;
             let line_number_table_entries = read_line_number_table_entries(attribute_buffer, line_number_table_length)?;
@@ -216,6 +245,17 @@ fn read_attribute(buffer: &mut Vec<u8>, cp: &ConstantPool) -> Result<Attribute, 
             let index = read_u16(attribute_buffer)?;
 
             Some(Attribute::SourceFile { index })
+        },
+        ATTRIBUTE_SIGNATURE => {
+            let index = read_u16(attribute_buffer)?;
+
+            Some(Attribute::Signature { index })
+        },
+        ATTRIBUTE_EXCEPTIONS => {
+            let number_of_exceptions = read_u16(attribute_buffer)?;
+            let exception_index = read_u16_array(attribute_buffer, number_of_exceptions)?;
+
+            Some(Attribute::Exceptions { exception_index })
         }
         _ => None
     };
@@ -230,6 +270,89 @@ fn read_attribute(buffer: &mut Vec<u8>, cp: &ConstantPool) -> Result<Attribute, 
             }
         },
         None => Err(ClassReaderError::InvalidAttributeName(attribute_name))
+    }
+}
+
+fn read_stack_map_frames(buffer: &mut Vec<u8>, length: u16) -> Result<Vec<StackMapFrame>, ClassReaderError> {
+    let mut entries: Vec<StackMapFrame> = Vec::new();
+
+    for index in 0..length {
+        let entry = read_stack_map_frame(buffer)?;
+        entries.push(entry);
+    }
+
+    Ok(entries)
+}
+
+fn read_stack_map_frame(buffer: &mut Vec<u8>) -> Result<StackMapFrame, ClassReaderError> {
+    let frame_type = read_u8(buffer)?;
+
+    match frame_type {
+        0 ... 63 => Ok(StackMapFrame::SameFrame),
+        64 ... 127 => {
+            let info = read_verification_type_info(buffer)?;
+            Ok(StackMapFrame::SameLocals1StackItemFrame { info })
+        },
+        247 => {
+            let info = read_verification_type_info(buffer)?;
+            Ok(StackMapFrame::SameLocals1StackItemFrameExtended { info })
+        },
+        248 ... 250 => {
+            let offset_delta = read_u16(buffer)?;
+            Ok(StackMapFrame::ChopFrame { offset_delta })
+        },
+        251 => {
+            let offset_delta = read_u16(buffer)?;
+            Ok(StackMapFrame::SameFrameExtended { offset_delta })
+        },
+        x @ 252 ... 254 => {
+            let offset_delta = read_u16(buffer)?;
+            let locals = read_verification_type_infos(buffer, (x - 251) as u16)?;
+            Ok(StackMapFrame::AppendFrame { offset_delta, locals })
+        },
+        255 => {
+            let offset_delta = read_u16(buffer)?;
+            let number_of_locals = read_u16(buffer)?;
+            let locals = read_verification_type_infos(buffer, number_of_locals)?;
+            let number_of_stack_items = read_u16(buffer)?;
+            let stack = read_verification_type_infos(buffer, number_of_stack_items)?;
+            Ok(StackMapFrame::FullFrame { offset_delta, locals, stack })
+        },
+        _ => Err(ClassReaderError::InvalidStackMapFrame(frame_type))
+    }
+}
+
+fn read_verification_type_infos(buffer: &mut Vec<u8>, length: u16) -> Result<Vec<VerificationTypeInfo>, ClassReaderError> {
+    let mut entries: Vec<VerificationTypeInfo> = Vec::new();
+
+    for index in 0..length {
+        let entry = read_verification_type_info(buffer)?;
+        entries.push(entry);
+    }
+
+    Ok(entries)
+}
+
+fn read_verification_type_info(buffer: &mut Vec<u8>) -> Result<VerificationTypeInfo, ClassReaderError> {
+    let tag = read_u8(buffer)?;
+
+    match tag {
+        0 => Ok(VerificationTypeInfo::Top),
+        1 => Ok(VerificationTypeInfo::Integer),
+        2 => Ok(VerificationTypeInfo::Float),
+        3 => Ok(VerificationTypeInfo::Double),
+        4 => Ok(VerificationTypeInfo::Long),
+        5 => Ok(VerificationTypeInfo::Null),
+        6 => Ok(VerificationTypeInfo::UninitializedThis),
+        7 => {
+            let cpool_index = read_u16(buffer)?;
+            Ok(VerificationTypeInfo::Object(cpool_index))
+        },
+        8 => {
+            let offset = read_u16(buffer)?;
+            Ok(VerificationTypeInfo::Uninitialized(offset))
+        },
+        x => Err(ClassReaderError::InvalidVerificationTypeInfo(x))
     }
 }
 
