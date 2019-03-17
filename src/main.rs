@@ -17,7 +17,7 @@ fn longer<'a>(s1: &'a str, s2: &'a str) -> &'a str {
 fn main() {
     println!("IronJDK 1.0.0");
 
-    let mut file = File::open("rt/java/lang/Thread.class").unwrap();
+    let mut file = File::open("rt/java/lang/System.class").unwrap();
     let mut buffer = Vec::new();
 
     file.read_to_end(&mut buffer).unwrap();
