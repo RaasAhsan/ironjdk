@@ -1,25 +1,10 @@
 public class Counter {
+    int key;
+    Counter left, right;
 
-    private int i = 0;
-
-    public Counter(int initial) {
-        this.i = initial;
+    public Counter(int item) {
+        this.key = item;
+        this.left = null;
+        this.right = null;
     }
-
-    public int get() {
-        return this.i;
-    }
-
-    public void increment() {
-        this.i = this.i + 1;
-    }
-
-    public void decrement() {
-        this.i = this.i - 1;
-    }
-
-    public void add(int d) {
-        this.i += d;
-    }
-
 }

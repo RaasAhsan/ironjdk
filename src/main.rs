@@ -2,9 +2,9 @@ use std::io::prelude::*;
 use std::fs::File;
 
 mod class;
+mod classloader;
 mod disassembler;
 mod instruction;
-mod parser;
 
 fn longer<'a>(s1: &'a str, s2: &'a str) -> &'a str {
     if s1.len() > s2.len() {
@@ -15,6 +15,8 @@ fn longer<'a>(s1: &'a str, s2: &'a str) -> &'a str {
 }
 
 fn main() {
+    println!("IronJDK 1.0.0");
+
     let mut file = File::open("Counter.class").unwrap();
     let mut buffer = Vec::new();
 
@@ -24,7 +26,7 @@ fn main() {
 //        println!("{:02X} = {}", x, x);
 //    }
 
-    let result = parser::parse_class_file(&mut buffer);
+    let result = classloader::parse_class_file(&mut buffer);
     match result {
         Ok(class_file) => {
             class_file.debug();
