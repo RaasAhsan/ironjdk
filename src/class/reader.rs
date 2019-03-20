@@ -37,6 +37,28 @@ const ATTRIBUTE_INNER_CLASSES: &str = "InnerClasses";
 const ATTRIBUTE_DEPRECATED: &str = "Deprecated";
 const ATTRIBUTE_RUNTIME_VISIBLE_ANNOTATIONS: &str = "RuntimeVisibleAnnotations";
 
+
+trait Decoder : Sized {
+    fn decode(buffer: &mut Vec<u8>, cp: &ConstantPool) -> Result<Self, ClassReaderError>;
+
+    fn decode_many(buffer: &mut Vec<u8>, length: usize, cp: &ConstantPool) -> Result<Vec<Self>, ClassReaderError> {
+        let mut entries: Vec<Self> = Vec::new();
+
+        for index in 0..length {
+            let entry = Decoder::decode(buffer, cp)?;
+            entries.push(entry)
+        }
+
+        Ok(entries)
+    }
+}
+
+//fn dec<T: Decoder, R: Decoder>(buffer: &mut Vec<u8>, cp: &ConstantPool) -> Result<T, String> {
+//    let a = Decoder::decode(buffer, cp);
+//    let b: Result<R, String> = Decoder::decode(buffer, cp);
+//    a
+//}
+
 #[derive(Debug)]
 pub enum ClassReaderError {
     EndOfStream,
@@ -64,11 +86,11 @@ pub fn read_class_file(buffer: &mut Vec<u8>) -> Result<ClassFile, ClassReaderErr
     let interfaces_count = read_u16(buffer)?;
     let interfaces = read_u16_array(buffer, interfaces_count)?;
     let fields_count = read_u16(buffer)?;
-    let fields = read_fields(buffer, fields_count, &constant_pool)?;
+    let fields = Field::decode_many(buffer, fields_count as usize, &constant_pool)?;
     let methods_count = read_u16(buffer)?;
-    let methods = read_methods(buffer, methods_count, &constant_pool)?;
+    let methods = Method::decode_many(buffer, methods_count as usize, &constant_pool)?;
     let attributes_count = read_u16(buffer)?;
-    let attributes = read_attributes(buffer, attributes_count, &constant_pool)?;
+    let attributes = Attribute::decode_many(buffer, attributes_count as usize, &constant_pool)?;
 
     let class_file = ClassFile {
         magic,
@@ -193,372 +215,269 @@ fn read_constant_pool_entry(buffer: &mut Vec<u8>) -> Result<ConstantPoolEntry, C
     }
 }
 
-fn read_fields(buffer: &mut Vec<u8>, length: u16, cp: &ConstantPool) -> Result<Vec<Field>, ClassReaderError> {
-    let mut entries: Vec<Field> = Vec::new();
+impl Decoder for Field {
+    fn decode(buffer: &mut Vec<u8>, cp: &ConstantPool) -> Result<Self, ClassReaderError> {
+        let access_flags = read_u16(buffer)?;
+        let name_index = read_u16(buffer)?;
+        let descriptor_index = read_u16(buffer)?;
+        let attributes_count = read_u16(buffer)?;
+        let attributes = Attribute::decode_many(buffer, attributes_count as usize, &cp)?;
 
-    for index in 0..length {
-        let entry = read_field(buffer, cp)?;
-        entries.push(entry)
-    }
+        let field = Field { access_flags, name_index, descriptor_index, attributes };
 
-    Ok(entries)
-}
-
-fn read_field(buffer: &mut Vec<u8>, cp: &ConstantPool) -> Result<Field, ClassReaderError> {
-    let access_flags = read_u16(buffer)?;
-    let name_index = read_u16(buffer)?;
-    let descriptor_index = read_u16(buffer)?;
-    let attributes_count = read_u16(buffer)?;
-    let attributes = read_attributes(buffer, attributes_count, cp)?;
-
-    let field = Field { access_flags, name_index, descriptor_index, attributes };
-
-    Ok(field)
-}
-
-fn read_methods(buffer: &mut Vec<u8>, length: u16, cp: &ConstantPool) -> Result<Vec<Method>, ClassReaderError> {
-    let mut entries: Vec<Method> = Vec::new();
-
-    for index in 0..length {
-        let entry = read_method(buffer, cp)?;
-        entries.push(entry)
-    }
-
-    Ok(entries)
-}
-
-fn read_method(buffer: &mut Vec<u8>, cp: &ConstantPool) -> Result<Method, ClassReaderError> {
-    let access_flags = read_u16(buffer)?;
-    let name_index = read_u16(buffer)?;
-    let descriptor_index = read_u16(buffer)?;
-    let attributes_count = read_u16(buffer)?;
-    let attributes = read_attributes(buffer, attributes_count, cp)?;
-
-    let method = Method { access_flags, name_index, descriptor_index, attributes };
-
-    Ok(method)
-}
-
-//
-// Read attributes
-//
-
-fn read_attributes(buffer: &mut Vec<u8>, length: u16, cp: &ConstantPool) -> Result<Vec<Attribute>, ClassReaderError> {
-    let mut entries: Vec<Attribute> = Vec::new();
-
-    for index in 0..length {
-        let entry = read_attribute(buffer, cp)?;
-        entries.push(entry)
-    }
-
-    Ok(entries)
-}
-
-fn read_attribute(buffer: &mut Vec<u8>, cp: &ConstantPool) -> Result<Attribute, ClassReaderError> {
-    let attribute_name_index = read_u16(buffer)?;
-    let attribute_length = read_u32(buffer)?;
-    let ref mut attribute_buffer = read_bytes(buffer, attribute_length as usize)?;
-
-    let attribute_name = cp.get_utf8(attribute_name_index)
-        .map_err(|x| ClassReaderError::ExpectedAttributeName)?;
-
-    let attribute_option = match attribute_name.as_ref() {
-        ATTRIBUTE_CODE => {
-            let max_stack = read_u16(attribute_buffer)?;
-            let max_locals = read_u16(attribute_buffer)?;
-            let code_length = read_u32(attribute_buffer)?;
-            let code = read_bytes(attribute_buffer, code_length as usize)?;
-            let exception_table_length = read_u16(attribute_buffer)?;
-            let exceptions: Vec<ExceptionTableEntry> = read_exception_table_entries(attribute_buffer, exception_table_length)?;
-            let attributes_count = read_u16(attribute_buffer)?;
-            let attributes = read_attributes(attribute_buffer, attributes_count, cp)?;
-
-            Some(Attribute::Code { max_stack, max_locals, code, exceptions, attributes })
-        },
-        ATTRIBUTE_STACK_MAP_TABLE => {
-            let number_of_entries = read_u16(attribute_buffer)?;
-            let entries = read_stack_map_frames(attribute_buffer, number_of_entries)?;
-
-            Some(Attribute::StackMapTable { entries })
-        },
-        ATTRIBUTE_LINE_NUMBER_TABLE => {
-            let line_number_table_length = read_u16(attribute_buffer)?;
-            let line_number_table_entries = read_line_number_table_entries(attribute_buffer, line_number_table_length)?;
-
-            Some(Attribute::LineNumberTable(line_number_table_entries))
-        },
-        ATTRIBUTE_SOURCE_FILE => {
-            let index = read_u16(attribute_buffer)?;
-
-            Some(Attribute::SourceFile { index })
-        },
-        ATTRIBUTE_SIGNATURE => {
-            let index = read_u16(attribute_buffer)?;
-
-            Some(Attribute::Signature { index })
-        },
-        ATTRIBUTE_EXCEPTIONS => {
-            let number_of_exceptions = read_u16(attribute_buffer)?;
-            let exception_index = read_u16_array(attribute_buffer, number_of_exceptions)?;
-
-            Some(Attribute::Exceptions { exception_index })
-        },
-        ATTRIBUTE_CONSTANT_VALUE => {
-            let index = read_u16(attribute_buffer)?;
-
-            Some(Attribute::ConstantValue { index })
-        },
-        ATTRIBUTE_INNER_CLASSES => {
-            let number_of_classes = read_u16(attribute_buffer)?;
-            let classes = read_inner_class_entries(attribute_buffer, number_of_classes)?;
-
-            Some(Attribute::InnerClasses { classes })
-        },
-        ATTRIBUTE_DEPRECATED => Some(Attribute::Deprecated),
-        ATTRIBUTE_RUNTIME_VISIBLE_ANNOTATIONS => {
-            let count = read_u16(attribute_buffer)?;
-            let annotations = read_annotations(attribute_buffer, count)?;
-
-            Some(Attribute::RuntimeVisibleAnnotations { annotations })
-        },
-        _ => None
-    };
-
-    match attribute_option {
-        Some(attribute) => {
-            if attribute_buffer.len() > 0 {
-                println!("Failed to parse attribute {}", attribute_name);
-                Err(ClassReaderError::RemainingBytes)
-            } else {
-                Ok(attribute)
-            }
-        },
-        None => Err(ClassReaderError::InvalidAttributeName(attribute_name))
+        Ok(field)
     }
 }
 
-fn read_annotations(buffer: &mut Vec<u8>, length: u16) -> Result<Vec<Annotation>, ClassReaderError> {
-    let mut entries: Vec<Annotation> = Vec::new();
+impl Decoder for Method {
+    fn decode(buffer: &mut Vec<u8>, cp: &ConstantPool) -> Result<Self, ClassReaderError> {
+        let access_flags = read_u16(buffer)?;
+        let name_index = read_u16(buffer)?;
+        let descriptor_index = read_u16(buffer)?;
+        let attributes_count = read_u16(buffer)?;
+        let attributes = Attribute::decode_many(buffer, attributes_count as usize, &cp)?;
 
-    for index in 0..length {
-        let entry = read_annotation(buffer)?;
-        entries.push(entry);
-    }
+        let method = Method { access_flags, name_index, descriptor_index, attributes };
 
-    Ok(entries)
-}
-
-fn read_annotation(buffer: &mut Vec<u8>) -> Result<Annotation, ClassReaderError> {
-    let type_index = read_u16(buffer)?;
-    let length = read_u16(buffer)?;
-    let elements = read_annotation_element_pairs(buffer, length)?;
-
-    Ok(Annotation { type_index, elements })
-}
-
-fn read_annotation_element_values(buffer: &mut Vec<u8>, length: u16) -> Result<Vec<AnnotationElementValue>, ClassReaderError> {
-    let mut entries: Vec<AnnotationElementValue> = Vec::new();
-
-    for index in 0..length {
-        let entry = read_annotation_element_value(buffer)?;
-        entries.push(entry);
-    }
-
-    Ok(entries)
-}
-
-fn read_annotation_element_value(buffer: &mut Vec<u8>) -> Result<AnnotationElementValue, ClassReaderError> {
-    let tag = read_u8(buffer)? as char;
-
-    match tag {
-        'B' | 'C' | 'D' | 'F' | 'I' | 'J' | 'S' | 'Z' | 's' => {
-            let value = read_u16(buffer)?;
-            Ok(AnnotationElementValue::Const(value))
-        },
-        'e' => {
-            let type_name_index = read_u16(buffer)?;
-            let const_name_index = read_u16(buffer)?;
-            Ok(AnnotationElementValue::EnumConst { type_name_index, const_name_index })
-        },
-        'c' => {
-            let class_info_index = read_u16(buffer)?;
-            Ok(AnnotationElementValue::ClassInfo(class_info_index))
-        },
-        '@' => {
-            let annotation = read_annotation(buffer)?;
-            Ok(AnnotationElementValue::Annotation(annotation))
-        },
-        '[' => {
-            let num_values = read_u16(buffer)?;
-            let values = read_annotation_element_values(buffer, num_values)?;
-            Ok(AnnotationElementValue::Array(values))
-        },
-        _ => Err(ClassReaderError::InvalidAnnotationElementValue(tag))
+        Ok(method)
     }
 }
 
-fn read_annotation_element_pairs(buffer: &mut Vec<u8>, length: u16) -> Result<Vec<AnnotationElementPair>, ClassReaderError> {
-    let mut entries: Vec<AnnotationElementPair> = Vec::new();
+impl Decoder for Attribute {
+    fn decode(buffer: &mut Vec<u8>, cp: &ConstantPool) -> Result<Self, ClassReaderError> {
+        let attribute_name_index = read_u16(buffer)?;
+        let attribute_length = read_u32(buffer)?;
+        let ref mut attribute_buffer = read_bytes(buffer, attribute_length as usize)?;
 
-    for index in 0..length {
-        let entry = read_annotation_element_pair(buffer)?;
-        entries.push(entry);
-    }
+        let attribute_name = cp.get_utf8(attribute_name_index)
+            .map_err(|x| ClassReaderError::ExpectedAttributeName)?;
 
-    Ok(entries)
-}
+        let attribute_option = match attribute_name.as_ref() {
+            ATTRIBUTE_CODE => {
+                let max_stack = read_u16(attribute_buffer)?;
+                let max_locals = read_u16(attribute_buffer)?;
+                let code_length = read_u32(attribute_buffer)?;
+                let code = read_bytes(attribute_buffer, code_length as usize)?;
+                let exception_table_length = read_u16(attribute_buffer)?;
+                let exceptions: Vec<ExceptionTableEntry> = ExceptionTableEntry::decode_many(attribute_buffer, exception_table_length as usize, cp)?;
+                let attributes_count = read_u16(attribute_buffer)?;
+                let attributes = Attribute::decode_many(attribute_buffer, attributes_count as usize, &cp)?;
 
-fn read_annotation_element_pair(buffer: &mut Vec<u8>) -> Result<AnnotationElementPair, ClassReaderError> {
-    let element_name_index = read_u16(buffer)?;
-    let element_value = read_annotation_element_value(buffer)?;
+                Some(Attribute::Code { max_stack, max_locals, code, exceptions, attributes })
+            },
+            ATTRIBUTE_STACK_MAP_TABLE => {
+                let number_of_entries = read_u16(attribute_buffer)?;
+                let entries = StackMapFrame::decode_many(attribute_buffer, number_of_entries as usize, cp)?;
 
-    Ok(AnnotationElementPair { element_name_index, element_value })
-}
+                Some(Attribute::StackMapTable { entries })
+            },
+            ATTRIBUTE_LINE_NUMBER_TABLE => {
+                let line_number_table_length = read_u16(attribute_buffer)?;
+                let line_number_table_entries = LineNumberTableEntry::decode_many(attribute_buffer, line_number_table_length as usize, cp)?;
 
-fn read_inner_class_entries(buffer: &mut Vec<u8>, length: u16) -> Result<Vec<InnerClassTableEntry>, ClassReaderError> {
-    let mut entries: Vec<InnerClassTableEntry> = Vec::new();
+                Some(Attribute::LineNumberTable(line_number_table_entries))
+            },
+            ATTRIBUTE_SOURCE_FILE => {
+                let index = read_u16(attribute_buffer)?;
 
-    for index in 0..length {
-        let entry = read_inner_class_entry(buffer)?;
-        entries.push(entry);
-    }
+                Some(Attribute::SourceFile { index })
+            },
+            ATTRIBUTE_SIGNATURE => {
+                let index = read_u16(attribute_buffer)?;
 
-    Ok(entries)
-}
+                Some(Attribute::Signature { index })
+            },
+            ATTRIBUTE_EXCEPTIONS => {
+                let number_of_exceptions = read_u16(attribute_buffer)?;
+                let exception_index = read_u16_array(attribute_buffer, number_of_exceptions)?;
 
-fn read_inner_class_entry(buffer: &mut Vec<u8>) -> Result<InnerClassTableEntry, ClassReaderError> {
-    let inner_class_info_index = read_u16(buffer)?;
-    let outer_class_info_index = read_u16(buffer)?;
-    let inner_name_index = read_u16(buffer)?;
-    let inner_class_access_flags = read_u16(buffer)?;
+                Some(Attribute::Exceptions { exception_index })
+            },
+            ATTRIBUTE_CONSTANT_VALUE => {
+                let index = read_u16(attribute_buffer)?;
 
-    Ok(InnerClassTableEntry {
-        inner_class_info_index,
-        outer_class_info_index,
-        inner_name_index,
-        inner_class_access_flags
-    })
-}
+                Some(Attribute::ConstantValue { index })
+            },
+            ATTRIBUTE_INNER_CLASSES => {
+                let number_of_classes = read_u16(attribute_buffer)?;
+                let classes = InnerClassTableEntry::decode_many(attribute_buffer, number_of_classes as usize, cp)?;
 
-fn read_exception_table_entries(buffer: &mut Vec<u8>, length: u16) -> Result<Vec<ExceptionTableEntry>, ClassReaderError> {
-    let mut entries: Vec<ExceptionTableEntry> = Vec::new();
+                Some(Attribute::InnerClasses { classes })
+            },
+            ATTRIBUTE_DEPRECATED => Some(Attribute::Deprecated),
+            ATTRIBUTE_RUNTIME_VISIBLE_ANNOTATIONS => {
+                let count = read_u16(attribute_buffer)?;
+                let annotations = Annotation::decode_many(attribute_buffer, count as usize, cp)?;
 
-    for index in 0..length {
-        let entry = read_exception_table_entry(buffer)?;
-        entries.push(entry);
-    }
+                Some(Attribute::RuntimeVisibleAnnotations { annotations })
+            },
+            _ => None
+        };
 
-    Ok(entries)
-}
-
-fn read_exception_table_entry(buffer: &mut Vec<u8>) -> Result<ExceptionTableEntry, ClassReaderError> {
-    let start_pc = read_u16(buffer)?;
-    let end_pc = read_u16(buffer)?;
-    let handler_pc = read_u16(buffer)?;
-    let catch_type = read_u16(buffer)?;
-
-    Ok(ExceptionTableEntry { start_pc, end_pc, handler_pc, catch_type })
-}
-
-fn read_stack_map_frames(buffer: &mut Vec<u8>, length: u16) -> Result<Vec<StackMapFrame>, ClassReaderError> {
-    let mut entries: Vec<StackMapFrame> = Vec::new();
-
-    for index in 0..length {
-        let entry = read_stack_map_frame(buffer)?;
-        entries.push(entry);
-    }
-
-    Ok(entries)
-}
-
-fn read_stack_map_frame(buffer: &mut Vec<u8>) -> Result<StackMapFrame, ClassReaderError> {
-    let frame_type = read_u8(buffer)?;
-
-    match frame_type {
-        0..=63 => Ok(StackMapFrame::SameFrame),
-        64..=127 => {
-            let info = read_verification_type_info(buffer)?;
-            Ok(StackMapFrame::SameLocals1StackItemFrame { info })
-        },
-        247 => {
-            let info = read_verification_type_info(buffer)?;
-            Ok(StackMapFrame::SameLocals1StackItemFrameExtended { info })
-        },
-        248..=250 => {
-            let offset_delta = read_u16(buffer)?;
-            Ok(StackMapFrame::ChopFrame { offset_delta })
-        },
-        251 => {
-            let offset_delta = read_u16(buffer)?;
-            Ok(StackMapFrame::SameFrameExtended { offset_delta })
-        },
-        x @ 252..=254 => {
-            let offset_delta = read_u16(buffer)?;
-            let locals = read_verification_type_infos(buffer, (x - 251) as u16)?;
-            Ok(StackMapFrame::AppendFrame { offset_delta, locals })
-        },
-        255 => {
-            let offset_delta = read_u16(buffer)?;
-            let number_of_locals = read_u16(buffer)?;
-            let locals = read_verification_type_infos(buffer, number_of_locals)?;
-            let number_of_stack_items = read_u16(buffer)?;
-            let stack = read_verification_type_infos(buffer, number_of_stack_items)?;
-            Ok(StackMapFrame::FullFrame { offset_delta, locals, stack })
-        },
-        _ => Err(ClassReaderError::InvalidStackMapFrame(frame_type))
+        match attribute_option {
+            Some(attribute) => {
+                if attribute_buffer.len() > 0 {
+                    println!("Failed to parse attribute {}", attribute_name);
+                    Err(ClassReaderError::RemainingBytes)
+                } else {
+                    Ok(attribute)
+                }
+            },
+            None => Err(ClassReaderError::InvalidAttributeName(attribute_name))
+        }
     }
 }
 
-fn read_verification_type_infos(buffer: &mut Vec<u8>, length: u16) -> Result<Vec<VerificationTypeInfo>, ClassReaderError> {
-    let mut entries: Vec<VerificationTypeInfo> = Vec::new();
+impl Decoder for Annotation {
+    fn decode(buffer: &mut Vec<u8>, cp: &ConstantPool) -> Result<Self, ClassReaderError> {
+        let type_index = read_u16(buffer)?;
+        let length = read_u16(buffer)?;
+        let elements = AnnotationElementPair::decode_many(buffer, length as usize, cp)?;
 
-    for index in 0..length {
-        let entry = read_verification_type_info(buffer)?;
-        entries.push(entry);
-    }
-
-    Ok(entries)
-}
-
-fn read_verification_type_info(buffer: &mut Vec<u8>) -> Result<VerificationTypeInfo, ClassReaderError> {
-    let tag = read_u8(buffer)?;
-
-    match tag {
-        0 => Ok(VerificationTypeInfo::Top),
-        1 => Ok(VerificationTypeInfo::Integer),
-        2 => Ok(VerificationTypeInfo::Float),
-        3 => Ok(VerificationTypeInfo::Double),
-        4 => Ok(VerificationTypeInfo::Long),
-        5 => Ok(VerificationTypeInfo::Null),
-        6 => Ok(VerificationTypeInfo::UninitializedThis),
-        7 => {
-            let cpool_index = read_u16(buffer)?;
-            Ok(VerificationTypeInfo::Object(cpool_index))
-        },
-        8 => {
-            let offset = read_u16(buffer)?;
-            Ok(VerificationTypeInfo::Uninitialized(offset))
-        },
-        x => Err(ClassReaderError::InvalidVerificationTypeInfo(x))
+        Ok(Annotation { type_index, elements })
     }
 }
 
-fn read_line_number_table_entries(buffer: &mut Vec<u8>, length: u16) -> Result<Vec<LineNumberTableEntry>, ClassReaderError> {
-    let mut entries: Vec<LineNumberTableEntry> = Vec::new();
+impl Decoder for AnnotationElementValue {
+    fn decode(buffer: &mut Vec<u8>, cp: &ConstantPool) -> Result<Self, ClassReaderError> {
+        let tag = read_u8(buffer)? as char;
 
-    for index in 0..length {
-        let entry = read_line_number_table_entry(buffer)?;
-        entries.push(entry);
+        match tag {
+            'B' | 'C' | 'D' | 'F' | 'I' | 'J' | 'S' | 'Z' | 's' => {
+                let value = read_u16(buffer)?;
+                Ok(AnnotationElementValue::Const(value))
+            },
+            'e' => {
+                let type_name_index = read_u16(buffer)?;
+                let const_name_index = read_u16(buffer)?;
+                Ok(AnnotationElementValue::EnumConst { type_name_index, const_name_index })
+            },
+            'c' => {
+                let class_info_index = read_u16(buffer)?;
+                Ok(AnnotationElementValue::ClassInfo(class_info_index))
+            },
+            '@' => {
+                let annotation = Annotation::decode(buffer, cp)?;
+                Ok(AnnotationElementValue::Annotation(annotation))
+            },
+            '[' => {
+                let num_values = read_u16(buffer)?;
+                let values = AnnotationElementValue::decode_many(buffer, num_values as usize, cp)?;
+                Ok(AnnotationElementValue::Array(values))
+            },
+            _ => Err(ClassReaderError::InvalidAnnotationElementValue(tag))
+        }
     }
-
-    Ok(entries)
 }
 
-fn read_line_number_table_entry(buffer: &mut Vec<u8>) -> Result<LineNumberTableEntry, ClassReaderError> {
-    let start_pc = read_u16(buffer)?;
-    let line_number = read_u16(buffer)?;
+impl Decoder for AnnotationElementPair {
+    fn decode(buffer: &mut Vec<u8>, cp: &ConstantPool) -> Result<Self, ClassReaderError> {
+        let element_name_index = read_u16(buffer)?;
+        let element_value = AnnotationElementValue::decode(buffer, cp)?;
 
-    Ok(LineNumberTableEntry { start_pc, line_number })
+        Ok(AnnotationElementPair { element_name_index, element_value })
+    }
+}
+
+impl Decoder for InnerClassTableEntry {
+    fn decode(buffer: &mut Vec<u8>, cp: &ConstantPool) -> Result<Self, ClassReaderError> {
+        let inner_class_info_index = read_u16(buffer)?;
+        let outer_class_info_index = read_u16(buffer)?;
+        let inner_name_index = read_u16(buffer)?;
+        let inner_class_access_flags = read_u16(buffer)?;
+
+        Ok(InnerClassTableEntry {
+            inner_class_info_index,
+            outer_class_info_index,
+            inner_name_index,
+            inner_class_access_flags
+        })
+    }
+}
+
+impl Decoder for ExceptionTableEntry {
+    fn decode(buffer: &mut Vec<u8>, cp: &ConstantPool) -> Result<Self, ClassReaderError> {
+        let start_pc = read_u16(buffer)?;
+        let end_pc = read_u16(buffer)?;
+        let handler_pc = read_u16(buffer)?;
+        let catch_type = read_u16(buffer)?;
+
+        Ok(ExceptionTableEntry { start_pc, end_pc, handler_pc, catch_type })
+    }
+}
+
+impl Decoder for StackMapFrame {
+    fn decode(buffer: &mut Vec<u8>, cp: &ConstantPool) -> Result<Self, ClassReaderError> {
+        let frame_type = read_u8(buffer)?;
+
+        match frame_type {
+            0..=63 => Ok(StackMapFrame::SameFrame),
+            64..=127 => {
+                let info = VerificationTypeInfo::decode(buffer, cp)?;
+                Ok(StackMapFrame::SameLocals1StackItemFrame { info })
+            },
+            247 => {
+                let info = VerificationTypeInfo::decode(buffer, cp)?;
+                Ok(StackMapFrame::SameLocals1StackItemFrameExtended { info })
+            },
+            248..=250 => {
+                let offset_delta = read_u16(buffer)?;
+                Ok(StackMapFrame::ChopFrame { offset_delta })
+            },
+            251 => {
+                let offset_delta = read_u16(buffer)?;
+                Ok(StackMapFrame::SameFrameExtended { offset_delta })
+            },
+            x @ 252..=254 => {
+                let offset_delta = read_u16(buffer)?;
+                let locals = VerificationTypeInfo::decode_many(buffer, (x - 251) as usize, cp)?;
+                Ok(StackMapFrame::AppendFrame { offset_delta, locals })
+            },
+            255 => {
+                let offset_delta = read_u16(buffer)?;
+                let number_of_locals = read_u16(buffer)?;
+                let locals = VerificationTypeInfo::decode_many(buffer, number_of_locals as usize, cp)?;
+                let number_of_stack_items = read_u16(buffer)?;
+                let stack = VerificationTypeInfo::decode_many(buffer, number_of_stack_items as usize, cp)?;
+                Ok(StackMapFrame::FullFrame { offset_delta, locals, stack })
+            },
+            _ => Err(ClassReaderError::InvalidStackMapFrame(frame_type))
+        }
+    }
+}
+
+impl Decoder for VerificationTypeInfo {
+    fn decode(buffer: &mut Vec<u8>, cp: &ConstantPool) -> Result<Self, ClassReaderError> {
+        let tag = read_u8(buffer)?;
+
+        match tag {
+            0 => Ok(VerificationTypeInfo::Top),
+            1 => Ok(VerificationTypeInfo::Integer),
+            2 => Ok(VerificationTypeInfo::Float),
+            3 => Ok(VerificationTypeInfo::Double),
+            4 => Ok(VerificationTypeInfo::Long),
+            5 => Ok(VerificationTypeInfo::Null),
+            6 => Ok(VerificationTypeInfo::UninitializedThis),
+            7 => {
+                let cpool_index = read_u16(buffer)?;
+                Ok(VerificationTypeInfo::Object(cpool_index))
+            },
+            8 => {
+                let offset = read_u16(buffer)?;
+                Ok(VerificationTypeInfo::Uninitialized(offset))
+            },
+            x => Err(ClassReaderError::InvalidVerificationTypeInfo(x))
+        }
+    }
+}
+
+impl Decoder for LineNumberTableEntry {
+    fn decode(buffer: &mut Vec<u8>, cp: &ConstantPool) -> Result<Self, ClassReaderError> {
+        let start_pc = read_u16(buffer)?;
+        let line_number = read_u16(buffer)?;
+
+        Ok(LineNumberTableEntry { start_pc, line_number })
+    }
 }
 
 fn read_u8(buffer: &mut Vec<u8>) -> Result<u8, ClassReaderError> {
