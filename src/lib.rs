@@ -1,4 +1,3 @@
 pub mod class;
-pub mod disassembler;
-pub mod instruction;
+pub mod code;
 pub mod vm;

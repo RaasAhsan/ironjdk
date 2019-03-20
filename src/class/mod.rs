@@ -3,7 +3,7 @@
 
 pub mod reader;
 
-use disassembler::disassemble_code;
+use code::disassembler;
 
 pub struct ClassFile {
     pub magic: u32,
@@ -66,7 +66,7 @@ impl ClassFile {
                         match a {
                             &Attribute::Code { ref code, .. } => {
                                 let mut code_buffer = code.clone();
-                                let disassemble_result = disassemble_code(&mut code_buffer);
+                                let disassemble_result = disassembler::disassemble_code(&mut code_buffer);
 
                                 match disassemble_result {
                                     Ok(instructions) => {

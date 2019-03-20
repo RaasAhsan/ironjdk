@@ -1,4 +1,4 @@
-use instruction::Instruction;
+use code::instruction::Instruction;
 
 const AALOAD: u8 = 0x32;
 const AASTORE: u8 = 0x53;
