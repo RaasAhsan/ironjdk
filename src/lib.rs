@@ -1,7 +1,5 @@
-#[cfg(test)]
-mod tests {
-    #[test]
-    fn it_works() {
-        assert_eq!(2 + 2, 4);
-    }
-}
+pub mod class;
+pub mod classreader;
+pub mod disassembler;
+pub mod instruction;
+pub mod vm;

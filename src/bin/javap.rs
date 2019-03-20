@@ -1,18 +1,9 @@
 use std::io::prelude::*;
 use std::fs::File;
 
-mod class;
-mod classreader;
-mod disassembler;
-mod instruction;
+extern crate ironjdk;
 
-fn longer<'a>(s1: &'a str, s2: &'a str) -> &'a str {
-    if s1.len() > s2.len() {
-        s1
-    } else {
-        s2
-    }
-}
+use ironjdk::classreader;
 
 fn main() {
     println!("IronJDK 1.0.0");
