@@ -3,7 +3,7 @@ use std::fs::File;
 
 extern crate ironjdk;
 
-use ironjdk::classreader;
+use ironjdk::class::reader;
 
 fn main() {
     println!("IronJDK 1.0.0");
@@ -17,7 +17,7 @@ fn main() {
 //        println!("{:02X} = {}", x, x);
 //    }
 
-    let result = classreader::read_class_file(&mut buffer);
+    let result = reader::read_class_file(&mut buffer);
     match result {
         Ok(class_file) => {
             class_file.print_constant_pool();

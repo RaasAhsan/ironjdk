@@ -1,6 +1,8 @@
 
 // Low-level representations of a ClassFile
 
+pub mod reader;
+
 use disassembler::disassemble_code;
 
 pub struct ClassFile {
