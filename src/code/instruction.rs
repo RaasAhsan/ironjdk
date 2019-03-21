@@ -140,7 +140,7 @@ pub enum Instruction {
     Ireturn,
     Ishl,
     Ishr,
-    Istore { index: u8 },
+    Istore(u8),
     Istore0,
     Istore1,
     Istore2,

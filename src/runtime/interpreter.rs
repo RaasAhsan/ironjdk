@@ -10,7 +10,23 @@ struct StackFrame {
 
 impl StackFrame {
 
-    fn new_frame(max_locals: u16, max_stack: u16) -> StackFrame {
+    fn pop_stack(&mut self) -> Option<StackVariable> {
+        self.stack.pop()
+    }
+
+    fn push_stack(&mut self, operand: StackVariable) {
+        self.stack.push(operand)
+    }
+
+    fn get_local(&self, index: usize) -> StackVariable {
+        self.locals[index]
+    }
+
+    fn set_local(&mut self, index: usize, var: StackVariable) {
+        self.locals[index] = var
+    }
+
+    fn new_frame(max_stack: u16, max_locals: u16) -> StackFrame {
         let locals: Vec<StackVariable> = vec![StackVariable::Empty; max_locals as usize];
         let stack: Vec<StackVariable> = Vec::new();
 
@@ -19,7 +35,7 @@ impl StackFrame {
 
 }
 
-#[derive(Clone, Debug)]
+#[derive(Copy, Clone, Debug)]
 enum StackVariable {
     Integer(i32),
     Empty
@@ -31,27 +47,159 @@ pub fn interpret(method: &RuntimeMethod, cp: &ConstantPool) {
     let mut stack_frame = StackFrame::new_frame(method.max_stack, method.max_locals);
 
     for instruction in method.code.iter() {
-        match instruction {
-            Instruction::Iconst0 => {
-                stack_frame.stack.push(StackVariable::Integer(0));
-            },
-            Instruction::Istore1 => {
-                let operand = stack_frame.stack.pop().unwrap();
-
-                match operand {
-                    i @ StackVariable::Integer { .. } => {
-                        stack_frame.locals[1] = i;
-                    },
-                    _ => {
-                        panic!("Found non-integer on top of operand stack.");
-                    }
-                }
-            },
-            _ => {
-                println!("{:?}", instruction);
-            }
-        }
+        interpret_instruction(instruction, &mut stack_frame);
     }
 
     println!("{:?}", stack_frame);
+}
+
+fn interpret_instruction(instruction: &Instruction, stack_frame: &mut StackFrame) {
+    println!("{:?}", instruction);
+
+    match instruction {
+        Instruction::Iadd => {
+            let operand_1 = stack_frame.pop_stack().unwrap();
+            let operand_2 = stack_frame.pop_stack().unwrap();
+
+            match operand_1 {
+                StackVariable::Integer(i1) => {
+                    match operand_2 {
+                        StackVariable::Integer(i2) => {
+                            stack_frame.push_stack(StackVariable::Integer(i2 + i1))
+                        },
+                        _ => {
+                            panic!("Found non-integer on top of operand stack.");
+                        }
+                    }
+                },
+                _ => {
+                    panic!("Found non-integer on top of operand stack.");
+                }
+            }
+        },
+        Instruction::Iconst0 => {
+            stack_frame.push_stack(StackVariable::Integer(0));
+        },
+        Instruction::Iconst1 => {
+            stack_frame.push_stack(StackVariable::Integer(1));
+        },
+        Instruction::Iconst2 => {
+            stack_frame.push_stack(StackVariable::Integer(2));
+        },
+        Instruction::Iconst3 => {
+            stack_frame.push_stack(StackVariable::Integer(3));
+        },
+        Instruction::Iconst4 => {
+            stack_frame.push_stack(StackVariable::Integer(4));
+        },
+        Instruction::Iconst5 => {
+            stack_frame.push_stack(StackVariable::Integer(5));
+        },
+        Instruction::Iload1 => {
+            let operand = stack_frame.get_local(1);
+
+            match operand {
+                i @ StackVariable::Integer { .. } => {
+                    stack_frame.push_stack(i);
+                },
+                _ => {
+                    panic!("Found non-integer on top of operand stack.");
+                }
+            }
+        },
+        Instruction::Iload2 => {
+            let operand = stack_frame.get_local(2);
+
+            match operand {
+                i @ StackVariable::Integer { .. } => {
+                    stack_frame.push_stack(i);
+                },
+                _ => {
+                    panic!("Found non-integer on top of operand stack.");
+                }
+            }
+        },
+
+        Instruction::Iload3 => {
+            let operand = stack_frame.get_local(3);
+
+            match operand {
+                i @ StackVariable::Integer { .. } => {
+                    stack_frame.push_stack(i);
+                },
+                _ => {
+                    panic!("Found non-integer on top of operand stack.");
+                }
+            }
+        },
+        Instruction::Istore(index) => {
+            let operand = stack_frame.pop_stack().unwrap();
+
+            match operand {
+                i @ StackVariable::Integer { .. } => {
+                    stack_frame.set_local(*index as usize, i);
+                },
+                _ => {
+                    panic!("Found non-integer on top of operand stack.");
+                }
+            }
+        },
+        Instruction::Istore1 => {
+            let operand = stack_frame.pop_stack().unwrap();
+
+            match operand {
+                i @ StackVariable::Integer { .. } => {
+                    stack_frame.set_local(1, i);
+                },
+                _ => {
+                    panic!("Found non-integer on top of operand stack.");
+                }
+            }
+        },
+        Instruction::Istore2 => {
+            let operand = stack_frame.pop_stack().unwrap();
+
+            match operand {
+                i @ StackVariable::Integer { .. } => {
+                    stack_frame.set_local(2, i);
+                },
+                _ => {
+                    panic!("Found non-integer on top of operand stack.");
+                }
+            }
+        },
+        Instruction::Istore3 => {
+            let operand = stack_frame.pop_stack().unwrap();
+
+            match operand {
+                i @ StackVariable::Integer { .. } => {
+                    stack_frame.set_local(3, i);
+                },
+                _ => {
+                    panic!("Found non-integer on top of operand stack.");
+                }
+            }
+        },
+        Instruction::Isub => {
+            let operand_1 = stack_frame.pop_stack().unwrap();
+            let operand_2 = stack_frame.pop_stack().unwrap();
+
+            match operand_1 {
+                StackVariable::Integer(i1) => {
+                    match operand_2 {
+                        StackVariable::Integer(i2) => {
+                            stack_frame.push_stack(StackVariable::Integer(i2 - i1))
+                        },
+                        _ => {
+                            panic!("Found non-integer on top of operand stack.");
+                        }
+                    }
+                },
+                _ => {
+                    panic!("Found non-integer on top of operand stack.");
+                }
+            }
+        },
+        _ => {}
+    }
 }

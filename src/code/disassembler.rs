@@ -540,7 +540,7 @@ fn parse_instruction(bytes: &mut Vec<u8>) -> Result<Instruction, DisassemblerErr
         x if x == ISTORE => {
             let index = read_u8(bytes)?;
 
-            Ok(Instruction::Istore { index })
+            Ok(Instruction::Istore(index))
         },
         x if x == ISTORE_0 => Ok(Instruction::Istore0),
         x if x == ISTORE_1 => Ok(Instruction::Istore1),
