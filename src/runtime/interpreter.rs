@@ -2,6 +2,7 @@ use code::instruction::Instruction;
 use class::{ConstantPool, Method};
 use code::RuntimeMethod;
 
+// TODO: Implement locals and stack with an array
 #[derive(Debug)]
 struct StackFrame {
     locals: Vec<StackVariable>,
@@ -37,7 +38,11 @@ impl StackFrame {
 
 #[derive(Copy, Clone, Debug)]
 enum StackVariable {
+    Long(i64),
     Integer(i32),
+    Short(i16),
+    Byte(i8),
+    Character(char),
     Empty
 }
 
