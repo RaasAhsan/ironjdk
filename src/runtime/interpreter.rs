@@ -5,31 +5,31 @@ use code::RuntimeMethod;
 // TODO: Implement locals and stack with an array
 #[derive(Debug)]
 struct StackFrame {
-    locals: Vec<StackVariable>,
-    stack: Vec<StackVariable>
+    locals: Vec<Primitive>,
+    stack: Vec<Primitive>
 }
 
 impl StackFrame {
 
-    fn pop_stack(&mut self) -> Option<StackVariable> {
+    fn pop_stack(&mut self) -> Option<Primitive> {
         self.stack.pop()
     }
 
-    fn push_stack(&mut self, operand: StackVariable) {
+    fn push_stack(&mut self, operand: Primitive) {
         self.stack.push(operand)
     }
 
-    fn get_local(&self, index: usize) -> StackVariable {
+    fn get_local(&self, index: usize) -> Primitive {
         self.locals[index]
     }
 
-    fn set_local(&mut self, index: usize, var: StackVariable) {
+    fn set_local(&mut self, index: usize, var: Primitive) {
         self.locals[index] = var
     }
 
     fn new_frame(max_stack: u16, max_locals: u16) -> StackFrame {
-        let locals: Vec<StackVariable> = vec![StackVariable::Empty; max_locals as usize];
-        let stack: Vec<StackVariable> = Vec::new();
+        let locals: Vec<Primitive> = vec![Primitive::Empty; max_locals as usize];
+        let stack: Vec<Primitive> = Vec::new();
 
         StackFrame { locals, stack }
     }
@@ -37,7 +37,7 @@ impl StackFrame {
 }
 
 #[derive(Copy, Clone, Debug)]
-enum StackVariable {
+enum Primitive {
     Long(i64),
     Integer(i32),
     Short(i16),
@@ -67,10 +67,10 @@ fn interpret_instruction(instruction: &Instruction, stack_frame: &mut StackFrame
             let operand_2 = stack_frame.pop_stack().unwrap();
 
             match operand_1 {
-                StackVariable::Integer(i1) => {
+                Primitive::Integer(i1) => {
                     match operand_2 {
-                        StackVariable::Integer(i2) => {
-                            stack_frame.push_stack(StackVariable::Integer(i2 + i1))
+                        Primitive::Integer(i2) => {
+                            stack_frame.push_stack(Primitive::Integer(i2 + i1))
                         },
                         _ => {
                             panic!("Found non-integer on top of operand stack.");
@@ -83,28 +83,28 @@ fn interpret_instruction(instruction: &Instruction, stack_frame: &mut StackFrame
             }
         },
         Instruction::Iconst0 => {
-            stack_frame.push_stack(StackVariable::Integer(0));
+            stack_frame.push_stack(Primitive::Integer(0));
         },
         Instruction::Iconst1 => {
-            stack_frame.push_stack(StackVariable::Integer(1));
+            stack_frame.push_stack(Primitive::Integer(1));
         },
         Instruction::Iconst2 => {
-            stack_frame.push_stack(StackVariable::Integer(2));
+            stack_frame.push_stack(Primitive::Integer(2));
         },
         Instruction::Iconst3 => {
-            stack_frame.push_stack(StackVariable::Integer(3));
+            stack_frame.push_stack(Primitive::Integer(3));
         },
         Instruction::Iconst4 => {
-            stack_frame.push_stack(StackVariable::Integer(4));
+            stack_frame.push_stack(Primitive::Integer(4));
         },
         Instruction::Iconst5 => {
-            stack_frame.push_stack(StackVariable::Integer(5));
+            stack_frame.push_stack(Primitive::Integer(5));
         },
         Instruction::Iload1 => {
             let operand = stack_frame.get_local(1);
 
             match operand {
-                i @ StackVariable::Integer { .. } => {
+                i @ Primitive::Integer { .. } => {
                     stack_frame.push_stack(i);
                 },
                 _ => {
@@ -116,7 +116,7 @@ fn interpret_instruction(instruction: &Instruction, stack_frame: &mut StackFrame
             let operand = stack_frame.get_local(2);
 
             match operand {
-                i @ StackVariable::Integer { .. } => {
+                i @ Primitive::Integer { .. } => {
                     stack_frame.push_stack(i);
                 },
                 _ => {
@@ -129,7 +129,7 @@ fn interpret_instruction(instruction: &Instruction, stack_frame: &mut StackFrame
             let operand = stack_frame.get_local(3);
 
             match operand {
-                i @ StackVariable::Integer { .. } => {
+                i @ Primitive::Integer { .. } => {
                     stack_frame.push_stack(i);
                 },
                 _ => {
@@ -141,7 +141,7 @@ fn interpret_instruction(instruction: &Instruction, stack_frame: &mut StackFrame
             let operand = stack_frame.pop_stack().unwrap();
 
             match operand {
-                i @ StackVariable::Integer { .. } => {
+                i @ Primitive::Integer { .. } => {
                     stack_frame.set_local(*index as usize, i);
                 },
                 _ => {
@@ -153,7 +153,7 @@ fn interpret_instruction(instruction: &Instruction, stack_frame: &mut StackFrame
             let operand = stack_frame.pop_stack().unwrap();
 
             match operand {
-                i @ StackVariable::Integer { .. } => {
+                i @ Primitive::Integer { .. } => {
                     stack_frame.set_local(1, i);
                 },
                 _ => {
@@ -165,7 +165,7 @@ fn interpret_instruction(instruction: &Instruction, stack_frame: &mut StackFrame
             let operand = stack_frame.pop_stack().unwrap();
 
             match operand {
-                i @ StackVariable::Integer { .. } => {
+                i @ Primitive::Integer { .. } => {
                     stack_frame.set_local(2, i);
                 },
                 _ => {
@@ -177,7 +177,7 @@ fn interpret_instruction(instruction: &Instruction, stack_frame: &mut StackFrame
             let operand = stack_frame.pop_stack().unwrap();
 
             match operand {
-                i @ StackVariable::Integer { .. } => {
+                i @ Primitive::Integer { .. } => {
                     stack_frame.set_local(3, i);
                 },
                 _ => {
@@ -190,10 +190,10 @@ fn interpret_instruction(instruction: &Instruction, stack_frame: &mut StackFrame
             let operand_2 = stack_frame.pop_stack().unwrap();
 
             match operand_1 {
-                StackVariable::Integer(i1) => {
+                Primitive::Integer(i1) => {
                     match operand_2 {
-                        StackVariable::Integer(i2) => {
-                            stack_frame.push_stack(StackVariable::Integer(i2 - i1))
+                        Primitive::Integer(i2) => {
+                            stack_frame.push_stack(Primitive::Integer(i2 - i1))
                         },
                         _ => {
                             panic!("Found non-integer on top of operand stack.");
