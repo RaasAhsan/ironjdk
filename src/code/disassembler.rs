@@ -203,16 +203,18 @@ const SWAP: u8 = 0x5f;
 const TABLESWITCH: u8 = 0xaa;
 const WIDE: u8 = 0xc4;
 
+#[derive(Debug)]
 pub enum DisassemblerError {
     EndOfCode,
     InvalidOpcode(u8)
 }
 
-pub fn disassemble_code(bytes: &mut Vec<u8>) -> Result<Vec<Instruction>, DisassemblerError> {
+pub fn disassemble_code(buffer: &Vec<u8>) -> Result<Vec<Instruction>, DisassemblerError> {
     let mut instructions: Vec<Instruction> = Vec::new();
+    let mut bytes: Vec<u8> = buffer.clone();
 
     while bytes.len() > 0 {
-        let i = parse_instruction(bytes)?;
+        let i = parse_instruction(&mut bytes)?;
         instructions.push(i);
     }
 

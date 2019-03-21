@@ -1,6 +1,6 @@
 pub mod gc;
 pub mod jit;
-pub mod vm;
+pub mod interpreter;
 
 fn runtime() {
     println!("Starting IronJDK virtual machine...");

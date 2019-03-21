@@ -1,9 +1,25 @@
 
-// Low-level representations of a ClassFile
+// Low-level representations of a ClassFile`
 
 pub mod reader;
 
-use code::disassembler;
+use code::{disassembler, RuntimeMethod};
+use code::instruction::Instruction;
+
+pub mod method {
+    pub const ACC_PUBLIC: u16 = 0x0001;
+    pub const ACC_PRIVATE: u16 = 0x0002;
+    pub const ACC_PROTECTED: u16 = 0x0004;
+    pub const ACC_STATIC: u16 = 0x0008;
+    pub const ACC_FINAL: u16 = 0x0010;
+    pub const ACC_SYNCHRONIZED: u16 = 0x0020;
+    pub const ACC_BRIDGE: u16 = 0x0040;
+    pub const ACC_VARARGS: u16 = 0x0080;
+    pub const ACC_NATIVE: u16 = 0x0100;
+    pub const ACC_ABSTRACT: u16 = 0x0200;
+    pub const ACC_STRICT: u16 = 0x0400;
+    pub const ACC_SYNTHETIC: u16 = 0x0800;
+}
 
 pub struct ClassFile {
     pub magic: u32,
@@ -39,6 +55,19 @@ impl ClassFile {
                 None => {}
             }
         }
+    }
+
+    pub fn find_method(&self, name: &str, access_flags: u16) -> Option<&Method> {
+        for method in self.methods.iter() {
+            let name_index = method.name_index;
+            let name_item = self.constant_pool.get_utf8(name_index).ok()?;
+
+            if name_item == name && method.access_flags & access_flags == access_flags {
+                return Some(&method);
+            }
+        }
+
+        None
     }
 
     pub fn debug(&self) -> () {
@@ -162,22 +191,6 @@ pub struct Field {
     pub attributes: Vec<Attribute>
 }
 
-pub enum FieldAccessFlag {
-    Public,
-    Private,
-    Protected,
-    Static,
-    Final,
-    Volatile,
-    Transient,
-    Synthetic,
-    Enum
-}
-
-impl FieldAccessFlag {
-
-}
-
 #[derive(Debug)]
 pub struct Method {
     pub access_flags: u16,
@@ -186,22 +199,22 @@ pub struct Method {
     pub attributes: Vec<Attribute>
 }
 
-pub enum MethodAccessFlag {
-    Public,
-    Private,
-    Protected,
-    Static,
-    Final,
-    Synchronized,
-    Bridge,
-    Varargs,
-    Native,
-    Abstract,
-    Strict,
-    Synthetic
-}
+impl Method {
 
-impl MethodAccessFlag {
+    pub fn disassemble(&self) -> Option<RuntimeMethod> {
+        for a in self.attributes.iter() {
+            match a {
+                &Attribute::Code { max_stack, max_locals, ref code, .. } => {
+                    let code = disassembler::disassemble_code(&code).ok()?;
+
+                    return Some(RuntimeMethod { max_stack, max_locals, code })
+                },
+                _ => {}
+            }
+        }
+
+        None
+    }
 
 }
 
