@@ -12,6 +12,6 @@ public class Counter {
         int a = 0;
         int b = 4;
         int c = 5;
-        int d = a - b + c;
+        int d = a - b * c;
     }
 }

@@ -1,5 +1,5 @@
 
-#[derive(Debug)]
+#[derive(Copy, Clone, Debug)]
 pub enum Instruction {
     Aaload,
     Aastore,
