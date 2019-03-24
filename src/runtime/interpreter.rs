@@ -198,9 +198,13 @@ fn interpret_instruction(instruction: &Instruction, stack_frame: &mut StackFrame
 
             Ok(())
         },
+        Instruction::Sipush(value) => {
+            stack_frame.push_int(*value);
+            Ok(())
+        },
         Instruction::Return => {
             Ok(())
-        }
+        },
         x => return Err(InterpreterError::UnhandledInstruction(*x))
     }
 }

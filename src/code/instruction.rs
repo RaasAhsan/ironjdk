@@ -199,7 +199,7 @@ pub enum Instruction {
     Return,
     Saload,
     Sastore,
-    Sipush { byte1: u8, byte2: u8 },
+    Sipush(i32),
     Swap,
     Tableswitch {},
     Wide {}

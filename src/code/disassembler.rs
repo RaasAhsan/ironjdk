@@ -658,10 +658,12 @@ fn parse_instruction(bytes: &mut Vec<u8>) -> Result<Instruction, DisassemblerErr
         x if x == SALOAD => Ok(Instruction::Saload),
         x if x == SASTORE => Ok(Instruction::Sastore),
         x if x == SIPUSH => {
-            let byte1 = read_u8(bytes)?;
-            let byte2 = read_u8(bytes)?;
+            let byte1 = read_u8(bytes)? as u16;
+            let byte2 = read_u8(bytes)? as u16;
 
-            Ok(Instruction::Sipush { byte1, byte2 })
+            let value = ((byte1 << 8) + byte2) as i32;
+
+            Ok(Instruction::Sipush(value))
         },
         x if x == SWAP => Ok(Instruction::Swap),
         x if x == TABLESWITCH => Ok(Instruction::Tableswitch {}),
