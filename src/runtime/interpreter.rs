@@ -1,6 +1,6 @@
 use code::instruction::Instruction;
 use class::{ConstantPool, Method};
-use code::RuntimeMethod;
+use runtime::class::RuntimeMethod;
 
 // TODO: Implement locals and stack with an array
 #[derive(Debug)]

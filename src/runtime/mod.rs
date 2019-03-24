@@ -1,3 +1,4 @@
+pub mod class;
 pub mod gc;
 pub mod jit;
 pub mod interpreter;

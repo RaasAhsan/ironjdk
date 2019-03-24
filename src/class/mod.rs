@@ -3,8 +3,9 @@
 
 pub mod reader;
 
-use code::{disassembler, RuntimeMethod};
+use code::disassembler;
 use code::instruction::Instruction;
+use runtime::class::RuntimeMethod;
 
 pub mod method {
     pub const ACC_PUBLIC: u16 = 0x0001;
