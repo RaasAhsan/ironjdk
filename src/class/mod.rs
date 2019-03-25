@@ -150,15 +150,30 @@ impl ConstantPool {
         self.entries.len()
     }
 
-    pub fn get_utf8(&self, index: u16) -> Result<String, &str> {
+    fn get_constant_pool_entry(&self, index: u16) -> Result<&ConstantPoolEntry, String> {
         let elem: Option<&ConstantPoolEntry> = self.get(index);
 
         match elem {
-            Some(e) => match e {
-                &ConstantPoolEntry::Utf8(ref string) => Ok(string.clone()),
-                _ => Err("Expected Utf8 attribute")
-            },
-            None => Err("Constant pool index out of bounds")
+            Some(e) => Ok(e),
+            None => Err(String::from("Constant pool index out of bounds"))
+        }
+    }
+
+    pub fn get_utf8(&self, index: u16) -> Result<String, String> {
+        let entry = self.get_constant_pool_entry(index)?;
+
+        match entry {
+            ConstantPoolEntry::Utf8(ref string) => Ok(string.clone()),
+            _ => Err(String::from("Expected Utf8 attribute"))
+        }
+    }
+
+    pub fn resolve_class_name(&self, index: u16) -> Result<String, String> {
+        let class_entry = self.get_constant_pool_entry(index)?;
+
+        match class_entry {
+            ConstantPoolEntry::Class { name_index } => self.get_utf8(*name_index),
+            _ => Err(String::from("Expected Class attribute"))
         }
     }
 

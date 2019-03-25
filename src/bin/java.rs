@@ -7,6 +7,8 @@ use std::fs::File;
 use std::io::Error;
 use ironjdk::class::method;
 use ironjdk::class::reader::ClassReaderError;
+use std::collections::HashMap;
+use ironjdk::runtime::class::RuntimeClass;
 
 fn load_class_from_file(path: &str) -> Result<ClassFile, ClassReaderError> {
     let mut file = File::open("Counter.class").unwrap();
@@ -20,11 +22,20 @@ fn load_class_from_file(path: &str) -> Result<ClassFile, ClassReaderError> {
 fn main() {
     println!("IronJDK 1.0.0");
 
-    let class = load_class_from_file("Counter.class").unwrap();
-    let main_method = class.find_method("main", method::ACC_PUBLIC & method::ACC_STATIC).unwrap();
+//    let runtime_context = RuntimeContext {
+//        loaded_class_table: HashMap::new()
+//    };
+
+    let class_file = load_class_from_file("Counter.class").unwrap();
+    class_file.print_constant_pool();
+    let entry_class_file = RuntimeClass::from_class_file(&class_file).unwrap();
+
+    println!("Running class file {}", entry_class_file.class_name);
+
+    let main_method = class_file.find_method("main", method::ACC_PUBLIC & method::ACC_STATIC).unwrap();
     let runtime_method = main_method.disassemble().unwrap();
 
-    runtime::interpreter::interpret(&runtime_method, &class.constant_pool);
+    runtime::interpreter::interpret(&runtime_method, &class_file.constant_pool);
 
     ()
 }
