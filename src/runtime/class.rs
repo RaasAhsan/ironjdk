@@ -1,6 +1,7 @@
 use code::instruction::Instruction;
 use class::ClassFile;
 
+#[derive(Debug)]
 pub struct RuntimeClass {
     pub class_name: String
 }
