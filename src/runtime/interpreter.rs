@@ -29,7 +29,7 @@ impl StackFrame {
         self.locals[index] = var
     }
 
-    // int instructions
+    // int helpers
 
     fn push_int(&mut self, integer: i32) {
         self.push_stack(Value::Integer(integer))
@@ -40,15 +40,6 @@ impl StackFrame {
 
         match operand {
             Value::Integer(i) => Ok(i),
-            _ => Err(InterpreterError::UnexpectedOperand)
-        }
-    }
-
-    fn pop_int_array(&mut self) -> Result<Rc<RefCell<IntArray>>, InterpreterError> {
-        let operand = self.pop_stack().unwrap();
-
-        match operand {
-            Value::IntegerArrayRef(reference) => Ok(reference),
             _ => Err(InterpreterError::UnexpectedOperand)
         }
     }
@@ -64,6 +55,32 @@ impl StackFrame {
 
     fn set_int_local(&mut self, index: usize, value: i32) {
         self.set_local(index, Value::Integer(value))
+    }
+
+    // int array reference helpers
+
+    fn pop_int_array(&mut self) -> Result<Rc<RefCell<IntArray>>, InterpreterError> {
+        let operand = self.pop_stack().unwrap();
+
+        match operand {
+            Value::IntegerArrayRef(reference) => Ok(reference),
+            _ => Err(InterpreterError::UnexpectedOperand)
+        }
+    }
+
+    // object reference helpers
+
+    fn push_object_reference(&mut self, reference: Rc<RefCell<Object>>) {
+        self.push_stack(Value::ObjectRef(reference))
+    }
+
+    fn pop_object_reference(&mut self) -> Result<Rc<RefCell<Object>>, InterpreterError> {
+        let operand = self.pop_stack().unwrap();
+
+        match operand {
+            Value::ObjectRef(reference) => Ok(reference),
+            _ => Err(InterpreterError::UnexpectedOperand)
+        }
     }
 
     fn new_frame(max_stack: u16, max_locals: u16) -> StackFrame {
@@ -85,8 +102,8 @@ enum Value {
     Short(i16),
     Byte(i8),
     Character(char),
-    IntegerArrayRef(Rc<RefCell<IntArray>>),
     ObjectRef(Rc<RefCell<Object>>),
+    IntegerArrayRef(Rc<RefCell<IntArray>>),
     Null
 }
 
