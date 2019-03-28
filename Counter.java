@@ -12,10 +12,8 @@ public class Counter {
         Counter c = null;
         int a = 0;
 
-        if (c == null) {
-            a = 1;
-        } else {
-            a = 2;
+        for (int i = 0; i < 10; i++) {
+            a = i;
         }
     }
 }

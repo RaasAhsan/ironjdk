@@ -211,6 +211,11 @@ fn interpret_instruction(instruction: &Instruction, stack_frame: &mut StackFrame
             stack_frame.set_local(1, operand);
             Ok(Step::Next)
         },
+        Instruction::Bipush { byte } => {
+            let value = *byte as i32;
+            stack_frame.push_int(value);
+            Ok(Step::Next)
+        },
         Instruction::Dup => {
             // TODO: Do we need to clone twice here, or is once sufficient?
             let operand = stack_frame.pop_stack().unwrap();
@@ -263,6 +268,108 @@ fn interpret_instruction(instruction: &Instruction, stack_frame: &mut StackFrame
             stack_frame.push_int(5);
             Ok(Step::Next)
         },
+        Instruction::IfIcmpeq { branch_offset } => {
+            let value2 = stack_frame.pop_int()?;
+            let value1 = stack_frame.pop_int()?;
+            if value1 == value2 {
+                Ok(Step::Jump(*branch_offset))
+            } else {
+                Ok(Step::Next)
+            }
+        },
+        Instruction::IfIcmpne { branch_offset } => {
+            let value2 = stack_frame.pop_int()?;
+            let value1 = stack_frame.pop_int()?;
+            if value1 != value2 {
+                Ok(Step::Jump(*branch_offset))
+            } else {
+                Ok(Step::Next)
+            }
+        },
+        Instruction::IfIcmplt { branch_offset } => {
+            let value2 = stack_frame.pop_int()?;
+            let value1 = stack_frame.pop_int()?;
+            if value1 < value2 {
+                Ok(Step::Jump(*branch_offset))
+            } else {
+                Ok(Step::Next)
+            }
+        },
+        Instruction::IfIcmpge { branch_offset } => {
+            let value2 = stack_frame.pop_int()?;
+            let value1 = stack_frame.pop_int()?;
+            if value1 >= value2 {
+                Ok(Step::Jump(*branch_offset))
+            } else {
+                Ok(Step::Next)
+            }
+        },
+        Instruction::IfIcmpgt { branch_offset } => {
+            let value2 = stack_frame.pop_int()?;
+            let value1 = stack_frame.pop_int()?;
+            if value1 > value2 {
+                Ok(Step::Jump(*branch_offset))
+            } else {
+                Ok(Step::Next)
+            }
+        },
+        Instruction::IfIcmple { branch_offset } => {
+            let value2 = stack_frame.pop_int()?;
+            let value1 = stack_frame.pop_int()?;
+            if value1 <= value2 {
+                Ok(Step::Jump(*branch_offset))
+            } else {
+                Ok(Step::Next)
+            }
+        },
+        Instruction::Ifeq { branch_offset } => {
+            let value = stack_frame.pop_int()?;
+            if value == 0 {
+                Ok(Step::Jump(*branch_offset))
+            } else {
+                Ok(Step::Next)
+            }
+        },
+        Instruction::Ifne { branch_offset } => {
+            let value = stack_frame.pop_int()?;
+            if value != 0 {
+                Ok(Step::Jump(*branch_offset))
+            } else {
+                Ok(Step::Next)
+            }
+        },
+        Instruction::Iflt { branch_offset } => {
+            let value = stack_frame.pop_int()?;
+            if value < 0 {
+                Ok(Step::Jump(*branch_offset))
+            } else {
+                Ok(Step::Next)
+            }
+        },
+        Instruction::Ifge { branch_offset } => {
+            let value = stack_frame.pop_int()?;
+            if value >= 0 {
+                Ok(Step::Jump(*branch_offset))
+            } else {
+                Ok(Step::Next)
+            }
+        },
+        Instruction::Ifgt { branch_offset } => {
+            let value = stack_frame.pop_int()?;
+            if value > 0 {
+                Ok(Step::Jump(*branch_offset))
+            } else {
+                Ok(Step::Next)
+            }
+        },
+        Instruction::Ifeq { branch_offset } => {
+            let value = stack_frame.pop_int()?;
+            if value <= 0 {
+                Ok(Step::Jump(*branch_offset))
+            } else {
+                Ok(Step::Next)
+            }
+        },
         Instruction::Ifnonnull { branch_offset} => {
             let reference = stack_frame.pop_stack().unwrap();
 
@@ -278,6 +385,11 @@ fn interpret_instruction(instruction: &Instruction, stack_frame: &mut StackFrame
                 Value::Null => Ok(Step::Jump(*branch_offset)),
                 _ => Ok(Step::Next)
             }
+        },
+        Instruction::Iinc { index, constant } => {
+            let local = stack_frame.get_int_local(*index as usize)?;
+            stack_frame.set_int_local(*index as usize, local + (*constant as i32));
+            Ok(Step::Next)
         },
         Instruction::Iload { index } => {
             let int = stack_frame.get_int_local(*index as usize)?;

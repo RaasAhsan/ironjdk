@@ -400,88 +400,88 @@ fn parse_instruction(bytes: &mut Vec<u8>) -> Result<Instruction, DisassemblerErr
         x if x == ICONST_5 => Ok(Instruction::Iconst5),
         x if x == IDIV => Ok(Instruction::Idiv),
         x if x == IF_ACMPEQ => {
-            let branchbyte1 = read_u8(bytes)?;
-            let branchbyte2 = read_u8(bytes)?;
-
-            Ok(Instruction::IfAcmpeq { branchbyte1, branchbyte2 })
+            let branchbyte1 = read_u8(bytes)? as u16;
+            let branchbyte2 = read_u8(bytes)? as u16;
+            let branch_offset = ((branchbyte1 << 8) + branchbyte2) as i16;
+            Ok(Instruction::IfAcmpeq { branch_offset })
         },
         x if x == IF_ACMPNE => {
-            let branchbyte1 = read_u8(bytes)?;
-            let branchbyte2 = read_u8(bytes)?;
-
-            Ok(Instruction::IfAcmpne { branchbyte1, branchbyte2 })
+            let branchbyte1 = read_u8(bytes)? as u16;
+            let branchbyte2 = read_u8(bytes)? as u16;
+            let branch_offset = ((branchbyte1 << 8) + branchbyte2) as i16;
+            Ok(Instruction::IfAcmpne { branch_offset })
         },
         x if x == IF_ICMPEQ => {
-            let branchbyte1 = read_u8(bytes)?;
-            let branchbyte2 = read_u8(bytes)?;
-
-            Ok(Instruction::IfIcmpeq { branchbyte1, branchbyte2 })
+            let branchbyte1 = read_u8(bytes)? as u16;
+            let branchbyte2 = read_u8(bytes)? as u16;
+            let branch_offset = ((branchbyte1 << 8) + branchbyte2) as i16;
+            Ok(Instruction::IfIcmpeq { branch_offset })
         },
         x if x == IF_ICMPNE => {
-            let branchbyte1 = read_u8(bytes)?;
-            let branchbyte2 = read_u8(bytes)?;
-
-            Ok(Instruction::IfIcmpne { branchbyte1, branchbyte2 })
+            let branchbyte1 = read_u8(bytes)? as u16;
+            let branchbyte2 = read_u8(bytes)? as u16;
+            let branch_offset = ((branchbyte1 << 8) + branchbyte2) as i16;
+            Ok(Instruction::IfIcmpne { branch_offset })
         },
         x if x == IF_ICMPLT => {
-            let branchbyte1 = read_u8(bytes)?;
-            let branchbyte2 = read_u8(bytes)?;
-
-            Ok(Instruction::IfIcmplt { branchbyte1, branchbyte2 })
+            let branchbyte1 = read_u8(bytes)? as u16;
+            let branchbyte2 = read_u8(bytes)? as u16;
+            let branch_offset = ((branchbyte1 << 8) + branchbyte2) as i16;
+            Ok(Instruction::IfIcmplt { branch_offset })
         },
         x if x == IF_ICMPGE => {
-            let branchbyte1 = read_u8(bytes)?;
-            let branchbyte2 = read_u8(bytes)?;
-
-            Ok(Instruction::IfIcmpge { branchbyte1, branchbyte2 })
+            let branchbyte1 = read_u8(bytes)? as u16;
+            let branchbyte2 = read_u8(bytes)? as u16;
+            let branch_offset = ((branchbyte1 << 8) + branchbyte2) as i16;
+            Ok(Instruction::IfIcmpge { branch_offset })
         },
         x if x == IF_ICMPGT => {
-            let branchbyte1 = read_u8(bytes)?;
-            let branchbyte2 = read_u8(bytes)?;
-
-            Ok(Instruction::IfIcmpgt { branchbyte1, branchbyte2 })
+            let branchbyte1 = read_u8(bytes)? as u16;
+            let branchbyte2 = read_u8(bytes)? as u16;
+            let branch_offset = ((branchbyte1 << 8) + branchbyte2) as i16;
+            Ok(Instruction::IfIcmpgt { branch_offset })
         },
         x if x == IF_ICMPLE => {
-            let branchbyte1 = read_u8(bytes)?;
-            let branchbyte2 = read_u8(bytes)?;
-
-            Ok(Instruction::IfIcmple { branchbyte1, branchbyte2 })
+            let branchbyte1 = read_u8(bytes)? as u16;
+            let branchbyte2 = read_u8(bytes)? as u16;
+            let branch_offset = ((branchbyte1 << 8) + branchbyte2) as i16;
+            Ok(Instruction::IfIcmple { branch_offset })
         },
         x if x == IFEQ => {
-            let branchbyte1 = read_u8(bytes)?;
-            let branchbyte2 = read_u8(bytes)?;
-
-            Ok(Instruction::Ifeq { branchbyte1, branchbyte2 })
+            let branchbyte1 = read_u8(bytes)? as u16;
+            let branchbyte2 = read_u8(bytes)? as u16;
+            let branch_offset = ((branchbyte1 << 8) + branchbyte2) as i16;
+            Ok(Instruction::Ifeq { branch_offset })
         },
         x if x == IFNE => {
-            let branchbyte1 = read_u8(bytes)?;
-            let branchbyte2 = read_u8(bytes)?;
-
-            Ok(Instruction::Ifne { branchbyte1, branchbyte2 })
+            let branchbyte1 = read_u8(bytes)? as u16;
+            let branchbyte2 = read_u8(bytes)? as u16;
+            let branch_offset = ((branchbyte1 << 8) + branchbyte2) as i16;
+            Ok(Instruction::Ifne { branch_offset })
         },
         x if x == IFLT => {
-            let branchbyte1 = read_u8(bytes)?;
-            let branchbyte2 = read_u8(bytes)?;
-
-            Ok(Instruction::Iflt { branchbyte1, branchbyte2 })
+            let branchbyte1 = read_u8(bytes)? as u16;
+            let branchbyte2 = read_u8(bytes)? as u16;
+            let branch_offset = ((branchbyte1 << 8) + branchbyte2) as i16;
+            Ok(Instruction::Iflt { branch_offset })
         },
         x if x == IFGE => {
-            let branchbyte1 = read_u8(bytes)?;
-            let branchbyte2 = read_u8(bytes)?;
-
-            Ok(Instruction::Ifge { branchbyte1, branchbyte2 })
+            let branchbyte1 = read_u8(bytes)? as u16;
+            let branchbyte2 = read_u8(bytes)? as u16;
+            let branch_offset = ((branchbyte1 << 8) + branchbyte2) as i16;
+            Ok(Instruction::Ifge { branch_offset })
         },
         x if x == IFGT => {
-            let branchbyte1 = read_u8(bytes)?;
-            let branchbyte2 = read_u8(bytes)?;
-
-            Ok(Instruction::Ifgt { branchbyte1, branchbyte2 })
+            let branchbyte1 = read_u8(bytes)? as u16;
+            let branchbyte2 = read_u8(bytes)? as u16;
+            let branch_offset = ((branchbyte1 << 8) + branchbyte2) as i16;
+            Ok(Instruction::Ifgt { branch_offset })
         },
         x if x == IFLE => {
-            let branchbyte1 = read_u8(bytes)?;
-            let branchbyte2 = read_u8(bytes)?;
-
-            Ok(Instruction::Ifle { branchbyte1, branchbyte2 })
+            let branchbyte1 = read_u8(bytes)? as u16;
+            let branchbyte2 = read_u8(bytes)? as u16;
+            let branch_offset = ((branchbyte1 << 8) + branchbyte2) as i16;
+            Ok(Instruction::Ifle { branch_offset })
         },
         x if x == IFNONNULL => {
             let branchbyte1 = read_u8(bytes)? as u16;
