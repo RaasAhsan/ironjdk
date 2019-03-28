@@ -1,4 +1,4 @@
-use code::instruction::Instruction;
+use code::instruction::{Instruction, TaggedInstruction};
 
 const AALOAD: u8 = 0x32;
 const AASTORE: u8 = 0x53;
@@ -209,13 +209,27 @@ pub enum DisassemblerError {
     InvalidOpcode(u8)
 }
 
-pub fn disassemble_code(buffer: &Vec<u8>) -> Result<Vec<Instruction>, DisassemblerError> {
-    let mut instructions: Vec<Instruction> = Vec::new();
+pub fn disassemble_code(buffer: &Vec<u8>) -> Result<Vec<TaggedInstruction>, DisassemblerError> {
+    let mut instructions: Vec<TaggedInstruction> = Vec::new();
     let mut bytes: Vec<u8> = buffer.clone();
+    let mut index: u16 = 0;
 
     while bytes.len() > 0 {
-        let i = parse_instruction(&mut bytes)?;
-        instructions.push(i);
+        let start_size = bytes.len() as u16;
+
+        let instruction = parse_instruction(&mut bytes)?;
+
+        let end_size = bytes.len() as u16;
+        let offset = start_size - end_size;
+
+        let tagged_instruction = TaggedInstruction {
+            instruction,
+            index
+        };
+
+        instructions.push(tagged_instruction);
+
+        index += offset;
     }
 
     Ok(instructions)
@@ -354,10 +368,10 @@ fn parse_instruction(bytes: &mut Vec<u8>) -> Result<Instruction, DisassemblerErr
             Ok(Instruction::Getstatic { index })
         },
         x if x == GOTO => {
-            let branchbyte1 = read_u8(bytes)?;
-            let branchbyte2 = read_u8(bytes)?;
-
-            Ok(Instruction::Goto { branchbyte1, branchbyte2 })
+            let branchbyte1 = read_u8(bytes)? as u16;
+            let branchbyte2 = read_u8(bytes)? as u16;
+            let branch_offset = ((branchbyte1 << 8) + branchbyte2) as i16;
+            Ok(Instruction::Goto { branch_offset })
         },
         x if x == GOTO_W => {
             let indexbyte1 = read_u8(bytes)?;
@@ -470,16 +484,18 @@ fn parse_instruction(bytes: &mut Vec<u8>) -> Result<Instruction, DisassemblerErr
             Ok(Instruction::Ifle { branchbyte1, branchbyte2 })
         },
         x if x == IFNONNULL => {
-            let branchbyte1 = read_u8(bytes)?;
-            let branchbyte2 = read_u8(bytes)?;
-
-            Ok(Instruction::Ifnonnull { branchbyte1, branchbyte2 })
+            let branchbyte1 = read_u8(bytes)? as u16;
+            let branchbyte2 = read_u8(bytes)? as u16;
+            let branch_offset = ((branchbyte1 << 8) + branchbyte2) as i16;
+            Ok(Instruction::Ifnonnull { branch_offset })
         },
         x if x == IFNULL => {
-            let branchbyte1 = read_u8(bytes)?;
-            let branchbyte2 = read_u8(bytes)?;
+            let branchbyte1 = read_u8(bytes)? as u16;
+            let branchbyte2 = read_u8(bytes)? as u16;
 
-            Ok(Instruction::Ifnull { branchbyte1, branchbyte2 })
+            let branch_offset = ((branchbyte1 << 8) + branchbyte2) as i16;
+
+            Ok(Instruction::Ifnull { branch_offset })
         },
         x if x == IINC => {
             let index = read_u8(bytes)?;

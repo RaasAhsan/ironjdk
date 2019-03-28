@@ -1,4 +1,4 @@
-use code::instruction::Instruction;
+use code::instruction::TaggedInstruction;
 use class::ClassFile;
 
 #[derive(Debug)]
@@ -29,7 +29,7 @@ struct RuntimeConstantPool {
 pub struct RuntimeMethod {
     pub max_stack: u16,
     pub max_locals: u16,
-    pub code: Vec<Instruction>
+    pub code: Vec<TaggedInstruction>
 }
 
 impl RuntimeMethod {

@@ -1,5 +1,11 @@
 
 #[derive(Copy, Clone, Debug)]
+pub struct TaggedInstruction {
+    pub instruction: Instruction,
+    pub index: u16
+}
+
+#[derive(Copy, Clone, Debug)]
 pub enum Instruction {
     Aaload,
     Aastore,
@@ -85,7 +91,7 @@ pub enum Instruction {
     Fsub,
     Getfield { index: u16 },
     Getstatic { index: u16 },
-    Goto { branchbyte1: u8, branchbyte2: u8 },
+    Goto { branch_offset: i16 },
     GotoW(u8, u8, u8, u8),
     I2b,
     I2c,
@@ -119,8 +125,8 @@ pub enum Instruction {
     Ifge { branchbyte1: u8, branchbyte2: u8 },
     Ifgt { branchbyte1: u8, branchbyte2: u8 },
     Ifle { branchbyte1: u8, branchbyte2: u8 },
-    Ifnonnull { branchbyte1: u8, branchbyte2: u8 },
-    Ifnull { branchbyte1: u8, branchbyte2: u8 },
+    Ifnonnull { branch_offset: i16 },
+    Ifnull { branch_offset: i16 },
     Iinc { index: u8, constant: i8 },
     Iload { index: u8 },
     Iload0,

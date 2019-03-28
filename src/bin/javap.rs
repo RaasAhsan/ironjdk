@@ -8,7 +8,7 @@ use ironjdk::class::reader;
 fn main() {
     println!("IronJDK 1.0.0");
 
-    let mut file = File::open("rt/java/lang/System.class").unwrap();
+    let mut file = File::open("Counter.class").unwrap();
     let mut buffer = Vec::new();
 
     file.read_to_end(&mut buffer).unwrap();

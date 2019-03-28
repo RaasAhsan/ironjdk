@@ -9,13 +9,13 @@ public class Counter {
     }
 
     public static void main(String[] args) {
-        int[] array = new int[] { 0, 1, 2, 3 };
+        Counter c = null;
+        int a = 0;
 
-        array[0] = 3;
-
-        int a = array[0];
-        int b = -700;
-        int c = 5;
-        int d = a - b * c;
+        if (c == null) {
+            a = 1;
+        } else {
+            a = 2;
+        }
     }
 }

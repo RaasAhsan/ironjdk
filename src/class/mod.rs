@@ -101,7 +101,10 @@ impl ClassFile {
                                 match disassemble_result {
                                     Ok(instructions) => {
                                         println!("Code: ");
-                                        println!("{:#?}", instructions);
+
+                                        for instruction in instructions.iter() {
+                                            println!("{}: {:?}", instruction.index, instruction.instruction);
+                                        }
                                     },
                                     Err(_) => {}
                                 }

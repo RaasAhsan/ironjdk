@@ -133,6 +133,11 @@ impl IntArray {
     }
 }
 
+enum Step {
+    Next,
+    Jump(i16)
+}
+
 #[derive(Debug)]
 enum InterpreterError {
     UnhandledInstruction(Instruction),
@@ -141,14 +146,37 @@ enum InterpreterError {
 }
 
 pub fn interpret(method: &RuntimeMethod, cp: &ConstantPool) {
-    let mut stack: Vec<StackFrame> = Vec::new();
-
+//    let mut stack: Vec<StackFrame> = Vec::new();
     let mut stack_frame = StackFrame::new_frame(method.max_stack, method.max_locals);
 
-    for instruction in method.code.iter() {
-        let res = interpret_instruction(instruction, &mut stack_frame);
-        match res {
-            Ok(_) => {},
+    let end_index: u16 = method.code.len() as u16 - 1;
+    let mut current_index: u16 = 0;
+    let mut done = false;
+
+    while done == false {
+        let tagged_instruction = method.code.get(current_index as usize).unwrap();
+        println!("{}: {:?}", tagged_instruction.index, tagged_instruction.instruction);
+
+        let result = interpret_instruction(&tagged_instruction.instruction, &mut stack_frame);
+
+        match result {
+            Ok(step) => {
+                match step {
+                    Step::Next => {
+                        if current_index == end_index {
+                            done = true;
+                        } else {
+                            current_index += 1;
+                        }
+                    },
+                    Step::Jump(offset) => {
+                        let current_code_index = tagged_instruction.index;
+                        let branch_code_index = ((current_code_index as i16) + offset) as u16;
+                        let next_index = method.code.iter().position(|&t| t.index == branch_code_index).unwrap() as u16;
+                        current_index = next_index;
+                    }
+                }
+            },
             Err(e) => {
                 println!("{:?}", e);
                 return
@@ -160,132 +188,158 @@ pub fn interpret(method: &RuntimeMethod, cp: &ConstantPool) {
     println!("{:?}", std::mem::size_of::<Rc<RefCell<Vec<i32>>>>());
 }
 
-fn interpret_instruction(instruction: &Instruction, stack_frame: &mut StackFrame) -> Result<(), InterpreterError> {
-    println!("{:?}", instruction);
-
+fn interpret_instruction(instruction: &Instruction, stack_frame: &mut StackFrame) -> Result<Step, InterpreterError> {
     match instruction {
+        Instruction::AconstNull => {
+            stack_frame.push_stack(Value::Null);
+            Ok(Step::Next)
+        },
+        Instruction::Aload { index } => {
+            // It's not necessary to type check perhaps?
+            // The typed instructions should really be used for knowing how many bytes to read/write.
+            let operand = stack_frame.get_local(*index as usize).clone();
+            stack_frame.push_stack(operand);
+            Ok(Step::Next)
+        },
         Instruction::Aload1 => {
             let operand = stack_frame.get_local(1).clone();
             stack_frame.push_stack(operand);
-            Ok(())
+            Ok(Step::Next)
         },
         Instruction::Astore1 => {
             let operand = stack_frame.pop_stack().unwrap();
             stack_frame.set_local(1, operand);
-            Ok(())
+            Ok(Step::Next)
         },
         Instruction::Dup => {
             // TODO: Do we need to clone twice here, or is once sufficient?
             let operand = stack_frame.pop_stack().unwrap();
             stack_frame.push_stack(operand.clone());
             stack_frame.push_stack(operand.clone());
-            Ok(())
+            Ok(Step::Next)
         },
+        Instruction::Goto { branch_offset } => Ok(Step::Jump(*branch_offset)),
         Instruction::Iadd => {
             let v2 = stack_frame.pop_int()?;
             let v1 = stack_frame.pop_int()?;
             stack_frame.push_int(v1 + v2);
-            Ok(())
+            Ok(Step::Next)
         },
         Instruction::Iaload => {
             let index = stack_frame.pop_int()?;
             let array = stack_frame.pop_int_array()?;
             let value = array.borrow().get(index as usize);
             stack_frame.push_int(value);
-            Ok(())
+            Ok(Step::Next)
         },
         Instruction::Iastore => {
             let value = stack_frame.pop_int()?;
             let index = stack_frame.pop_int()?;
             let mut array = stack_frame.pop_int_array()?;
             array.borrow_mut().set(index as usize, value);
-            Ok(())
+            Ok(Step::Next)
         },
         Instruction::Iconst0 => {
             stack_frame.push_int(0);
-            Ok(())
+            Ok(Step::Next)
         },
         Instruction::Iconst1 => {
             stack_frame.push_int(1);
-            Ok(())
+            Ok(Step::Next)
         },
         Instruction::Iconst2 => {
             stack_frame.push_int(2);
-            Ok(())
+            Ok(Step::Next)
         },
         Instruction::Iconst3 => {
             stack_frame.push_int(3);
-            Ok(())
+            Ok(Step::Next)
         },
         Instruction::Iconst4 => {
             stack_frame.push_int(4);
-            Ok(())
+            Ok(Step::Next)
         },
         Instruction::Iconst5 => {
             stack_frame.push_int(5);
-            Ok(())
+            Ok(Step::Next)
+        },
+        Instruction::Ifnonnull { branch_offset} => {
+            let reference = stack_frame.pop_stack().unwrap();
+
+            match reference {
+                Value::Null => Ok(Step::Next),
+                _ => Ok(Step::Jump(*branch_offset))
+            }
+        },
+        Instruction::Ifnull { branch_offset} => {
+            let reference = stack_frame.pop_stack().unwrap();
+
+            match reference {
+                Value::Null => Ok(Step::Jump(*branch_offset)),
+                _ => Ok(Step::Next)
+            }
+        },
+        Instruction::Iload { index } => {
+            let int = stack_frame.get_int_local(*index as usize)?;
+            stack_frame.push_int(int);
+            Ok(Step::Next)
+        },
+        Instruction::Iload0 => {
+            let int = stack_frame.get_int_local(0)?;
+            stack_frame.push_int(int);
+            Ok(Step::Next)
+        },
+        Instruction::Iload1 => {
+            let int = stack_frame.get_int_local(1)?;
+            stack_frame.push_int(int);
+            Ok(Step::Next)
+        },
+        Instruction::Iload2 => {
+            let int = stack_frame.get_int_local(2)?;
+            stack_frame.push_int(int);
+            Ok(Step::Next)
+        },
+        Instruction::Iload3 => {
+            let int = stack_frame.get_int_local(3)?;
+            stack_frame.push_int(int);
+            Ok(Step::Next)
         },
         Instruction::Imul => {
             let v2 = stack_frame.pop_int()?;
             let v1 = stack_frame.pop_int()?;
             stack_frame.push_int(v1 * v2);
-            Ok(())
-        },
-        Instruction::Iload { index } => {
-            let int = stack_frame.get_int_local(*index as usize)?;
-            stack_frame.push_int(int);
-            Ok(())
-        },
-        Instruction::Iload0 => {
-            let int = stack_frame.get_int_local(0)?;
-            stack_frame.push_int(int);
-            Ok(())
-        },
-        Instruction::Iload1 => {
-            let int = stack_frame.get_int_local(1)?;
-            stack_frame.push_int(int);
-            Ok(())
-        },
-        Instruction::Iload2 => {
-            let int = stack_frame.get_int_local(2)?;
-            stack_frame.push_int(int);
-            Ok(())
-        },
-        Instruction::Iload3 => {
-            let int = stack_frame.get_int_local(3)?;
-            stack_frame.push_int(int);
-            Ok(())
+            Ok(Step::Next)
         },
         Instruction::Istore(index) => {
             let int = stack_frame.pop_int()?;
             stack_frame.set_int_local(*index as usize, int);
-            Ok(())
+            Ok(Step::Next)
         },
         Instruction::Istore0 => {
             let int = stack_frame.pop_int()?;
             stack_frame.set_int_local(0, int);
-            Ok(())
+            Ok(Step::Next)
         },
         Instruction::Istore1 => {
             let int = stack_frame.pop_int()?;
             stack_frame.set_int_local(1, int);
-            Ok(())
+            Ok(Step::Next)
         },
         Instruction::Istore2 => {
             let int = stack_frame.pop_int()?;
             stack_frame.set_int_local(2, int);
-            Ok(())
+            Ok(Step::Next)
         },
         Instruction::Istore3 => {
             let int = stack_frame.pop_int()?;
             stack_frame.set_int_local(3, int);
-            Ok(())
+            Ok(Step::Next)
         },
         Instruction::Isub => {
             let value2 = stack_frame.pop_int()?;
             let value1 = stack_frame.pop_int()?;
             stack_frame.push_int(value1 - value2);
-            Ok(())
+            Ok(Step::Next)
         },
         Instruction::Newarray { atype } => {
             let count = stack_frame.pop_int()?;
@@ -294,17 +348,17 @@ fn interpret_instruction(instruction: &Instruction, stack_frame: &mut StackFrame
                 10 => {
                     let array = Value::IntegerArrayRef(new_integer_array(count as usize));
                     stack_frame.push_stack(array);
-                    Ok(())
+                    Ok(Step::Next)
                 },
                 _ => Err(InterpreterError::InvalidArrayType)
             }
         },
         Instruction::Sipush(value) => {
             stack_frame.push_int(*value);
-            Ok(())
+            Ok(Step::Next)
         },
         Instruction::Return => {
-            Ok(())
+            Ok(Step::Next)
         },
         x => Err(InterpreterError::UnhandledInstruction(*x))
     }
