@@ -9,7 +9,7 @@ public class Counter {
     }
 
     public static void main(String[] args) {
-        Counter c = null;
+        Counter c = new Counter(3);
         int a = 0;
 
         for (int i = 0; i < 10; i++) {

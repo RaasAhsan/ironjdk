@@ -58,19 +58,6 @@ impl ClassFile {
         }
     }
 
-    pub fn find_method(&self, name: &str, access_flags: u16) -> Option<&Method> {
-        for method in self.methods.iter() {
-            let name_index = method.name_index;
-            let name_item = self.constant_pool.get_utf8(name_index).ok()?;
-
-            if name_item == name && method.access_flags & access_flags == access_flags {
-                return Some(&method);
-            }
-        }
-
-        None
-    }
-
     pub fn debug(&self) -> () {
         println!("Magic: {:X}", self.magic);
         println!("Minor version: {}", self.minor_version);
@@ -137,7 +124,7 @@ pub enum ConstantPoolTag {
     InvokeDynamic
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct ConstantPool {
     pub entries: Vec<ConstantPoolEntry>
 }
@@ -153,7 +140,7 @@ impl ConstantPool {
         self.entries.len()
     }
 
-    fn get_constant_pool_entry(&self, index: u16) -> Result<&ConstantPoolEntry, String> {
+    fn get_entry(&self, index: u16) -> Result<&ConstantPoolEntry, String> {
         let elem: Option<&ConstantPoolEntry> = self.get(index);
 
         match elem {
@@ -163,7 +150,7 @@ impl ConstantPool {
     }
 
     pub fn get_utf8(&self, index: u16) -> Result<String, String> {
-        let entry = self.get_constant_pool_entry(index)?;
+        let entry = self.get_entry(index)?;
 
         match entry {
             ConstantPoolEntry::Utf8(ref string) => Ok(string.clone()),
@@ -171,11 +158,14 @@ impl ConstantPool {
         }
     }
 
-    pub fn resolve_class_name(&self, index: u16) -> Result<String, String> {
-        let class_entry = self.get_constant_pool_entry(index)?;
+    pub fn get_class(&self, index: u16) -> Result<String, String> {
+        let entry = self.get_entry(index)?;
 
-        match class_entry {
-            ConstantPoolEntry::Class { name_index } => self.get_utf8(*name_index),
+        match entry {
+            ConstantPoolEntry::Class { name_index} => {
+                let name_entry = self.get_utf8(*name_index)?;
+                Ok(name_entry)
+            },
             _ => Err(String::from("Expected Class attribute"))
         }
     }
@@ -202,7 +192,7 @@ pub enum ConstantPoolEntry {
     Placeholder
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct Field {
     pub access_flags: u16,
     pub name_index: u16,
@@ -210,7 +200,7 @@ pub struct Field {
     pub attributes: Vec<Attribute>
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct Method {
     pub access_flags: u16,
     pub name_index: u16,
@@ -218,32 +208,13 @@ pub struct Method {
     pub attributes: Vec<Attribute>
 }
 
-impl Method {
-
-    pub fn disassemble(&self) -> Option<RuntimeMethod> {
-        for a in self.attributes.iter() {
-            match a {
-                &Attribute::Code { max_stack, max_locals, ref code, .. } => {
-                    let code = disassembler::disassemble_code(&code).ok()?;
-
-                    return Some(RuntimeMethod { max_stack, max_locals, code })
-                },
-                _ => {}
-            }
-        }
-
-        None
-    }
-
-}
-
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct AttributeInfo {
     pub attribute_name_index: u16,
     pub bytes: Vec<u8>
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub enum Attribute {
     ConstantValue { index: u16 },
     Code {
@@ -274,19 +245,19 @@ pub enum Attribute {
     BootstrapMethods {}
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct Annotation {
     pub type_index: u16,
     pub elements: Vec<AnnotationElementPair>
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct AnnotationElementPair {
     pub element_name_index: u16,
     pub element_value: AnnotationElementValue
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub enum AnnotationElementValue {
     Const(u16),
     EnumConst { type_name_index: u16, const_name_index: u16 },
@@ -295,7 +266,7 @@ pub enum AnnotationElementValue {
     Array(Vec<AnnotationElementValue>)
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub enum StackMapFrame {
     SameFrame,
     SameLocals1StackItemFrame { info: VerificationTypeInfo },
@@ -310,7 +281,7 @@ pub enum StackMapFrame {
     }
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub enum VerificationTypeInfo {
     Top,
     Integer,
@@ -323,7 +294,7 @@ pub enum VerificationTypeInfo {
     Double
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct ExceptionTableEntry {
     pub start_pc: u16,
     pub end_pc: u16,
@@ -331,7 +302,7 @@ pub struct ExceptionTableEntry {
     pub catch_type: u16
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct InnerClassTableEntry {
     pub inner_class_info_index: u16,
     pub outer_class_info_index: u16,
@@ -339,7 +310,7 @@ pub struct InnerClassTableEntry {
     pub inner_class_access_flags: u16
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct LineNumberTableEntry {
     pub start_pc: u16,
     pub line_number: u16

@@ -26,7 +26,7 @@ pub enum Value {
 
 #[derive(Debug)]
 pub struct Object {
-    class: Rc<RuntimeClass>,
+    class: Rc<RuntimeClass>, // or perhaps an index into a loaded class table
     memory: Box<ObjectData>
 }
 

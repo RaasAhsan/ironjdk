@@ -1,9 +1,9 @@
 use code::instruction::Instruction;
 use class::{ConstantPool, Method};
-use runtime::class::{RuntimeMethod, RuntimeClass};
+use runtime::class::{RuntimeMethod, RuntimeClass, ClassTable};
 use std::rc::Rc;
 use std::cell::RefCell;
-use runtime::{Value, IntArray};
+use runtime::{Value, IntArray, Object, ObjectData};
 use runtime::stack::StackFrame;
 
 enum Step {
@@ -18,7 +18,7 @@ pub enum InterpreterError {
     InvalidArrayType
 }
 
-pub fn interpret(method: &RuntimeMethod, cp: &ConstantPool) {
+pub fn interpret(method: &RuntimeMethod, class: &Rc<RuntimeClass>, class_table: &ClassTable) {
 //    let mut stack: Vec<StackFrame> = Vec::new();
     let mut stack_frame = StackFrame::new_frame(method.max_stack, method.max_locals);
 
@@ -30,7 +30,12 @@ pub fn interpret(method: &RuntimeMethod, cp: &ConstantPool) {
         let tagged_instruction = method.code.get(current_index as usize).unwrap();
         println!("{}: {:?}", tagged_instruction.index, tagged_instruction.instruction);
 
-        let result = interpret_instruction(&tagged_instruction.instruction, &mut stack_frame);
+        let result = interpret_instruction(
+            &tagged_instruction.instruction,
+            &mut stack_frame,
+            class,
+            class_table
+        );
 
         match result {
             Ok(step) => {
@@ -61,26 +66,26 @@ pub fn interpret(method: &RuntimeMethod, cp: &ConstantPool) {
     println!("{:?}", std::mem::size_of::<Rc<RefCell<Vec<i32>>>>());
 }
 
-fn interpret_instruction(instruction: &Instruction, stack_frame: &mut StackFrame) -> Result<Step, InterpreterError> {
+fn interpret_instruction(instruction: &Instruction, stack_frame: &mut StackFrame, class: &Rc<RuntimeClass>, class_table: &ClassTable) -> Result<Step, InterpreterError> {
     match instruction {
         Instruction::AconstNull => {
-            stack_frame.push_stack(Value::Null);
+            stack_frame.push(Value::Null);
             Ok(Step::Next)
         },
         Instruction::Aload { index } => {
             // It's not necessary to type check perhaps?
             // The typed instructions should really be used for knowing how many bytes to read/write.
             let operand = stack_frame.get_local(*index as usize).clone();
-            stack_frame.push_stack(operand);
+            stack_frame.push(operand);
             Ok(Step::Next)
         },
         Instruction::Aload1 => {
             let operand = stack_frame.get_local(1).clone();
-            stack_frame.push_stack(operand);
+            stack_frame.push(operand);
             Ok(Step::Next)
         },
         Instruction::Astore1 => {
-            let operand = stack_frame.pop_stack().unwrap();
+            let operand = stack_frame.pop().unwrap();
             stack_frame.set_local(1, operand);
             Ok(Step::Next)
         },
@@ -91,9 +96,9 @@ fn interpret_instruction(instruction: &Instruction, stack_frame: &mut StackFrame
         },
         Instruction::Dup => {
             // TODO: Do we need to clone twice here, or is once sufficient?
-            let operand = stack_frame.pop_stack().unwrap();
-            stack_frame.push_stack(operand.clone());
-            stack_frame.push_stack(operand.clone());
+            let operand = stack_frame.pop().unwrap();
+            stack_frame.push(operand.clone());
+            stack_frame.push(operand.clone());
             Ok(Step::Next)
         },
         Instruction::Goto { branch_offset } => Ok(Step::Jump(*branch_offset)),
@@ -244,7 +249,7 @@ fn interpret_instruction(instruction: &Instruction, stack_frame: &mut StackFrame
             }
         },
         Instruction::Ifnonnull { branch_offset} => {
-            let reference = stack_frame.pop_stack().unwrap();
+            let reference = stack_frame.pop().unwrap();
 
             match reference {
                 Value::Null => Ok(Step::Next),
@@ -252,7 +257,7 @@ fn interpret_instruction(instruction: &Instruction, stack_frame: &mut StackFrame
             }
         },
         Instruction::Ifnull { branch_offset} => {
-            let reference = stack_frame.pop_stack().unwrap();
+            let reference = stack_frame.pop().unwrap();
 
             match reference {
                 Value::Null => Ok(Step::Jump(*branch_offset)),
@@ -326,13 +331,27 @@ fn interpret_instruction(instruction: &Instruction, stack_frame: &mut StackFrame
             stack_frame.push_int(value1 - value2);
             Ok(Step::Next)
         },
+        Instruction::New { index } => {
+            let class_name = class.constant_pool.get_class(*index).unwrap();
+            let runtime_class = class_table.get_class(&*class_name).unwrap();
+
+            let object = Object {
+                class: runtime_class.clone(),
+                memory: Box::new(ObjectData { fields: Vec::new() })
+            };
+
+            let object_reference = Value::ObjectRef(Rc::new(RefCell::new(object)));
+            stack_frame.push(object_reference);
+
+            Ok(Step::Next)
+        },
         Instruction::Newarray { atype } => {
             let count = stack_frame.pop_int()?;
             // These are array type codes. We could classify them.
             match atype {
                 10 => {
                     let array = Value::IntegerArrayRef(IntArray::new(count as usize));
-                    stack_frame.push_stack(array);
+                    stack_frame.push(array);
                     Ok(Step::Next)
                 },
                 _ => Err(InterpreterError::InvalidArrayType)

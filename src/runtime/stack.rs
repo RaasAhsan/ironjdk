@@ -13,11 +13,11 @@ pub struct StackFrame {
 // TODO: Don't use InterpreterError
 impl StackFrame {
 
-    pub fn pop_stack(&mut self) -> Option<Value> {
+    pub fn pop(&mut self) -> Option<Value> {
         self.stack.pop()
     }
 
-    pub fn push_stack(&mut self, operand: Value) {
+    pub fn push(&mut self, operand: Value) {
         self.stack.push(operand)
     }
 
@@ -32,11 +32,11 @@ impl StackFrame {
     // int helpers
 
     pub fn push_int(&mut self, integer: i32) {
-        self.push_stack(Value::Integer(integer))
+        self.push(Value::Integer(integer))
     }
 
     pub fn pop_int(&mut self) -> Result<i32, InterpreterError> {
-        let operand = self.pop_stack().unwrap();
+        let operand = self.pop().unwrap();
 
         match operand {
             Value::Integer(i) => Ok(i),
@@ -60,7 +60,7 @@ impl StackFrame {
     // int array reference helpers
 
     pub fn pop_int_array(&mut self) -> Result<Rc<RefCell<IntArray>>, InterpreterError> {
-        let operand = self.pop_stack().unwrap();
+        let operand = self.pop().unwrap();
 
         match operand {
             Value::IntegerArrayRef(reference) => Ok(reference),
@@ -71,11 +71,11 @@ impl StackFrame {
     // object reference helpers
 
     pub fn push_object_reference(&mut self, reference: Rc<RefCell<Object>>) {
-        self.push_stack(Value::ObjectRef(reference))
+        self.push(Value::ObjectRef(reference))
     }
 
     pub fn pop_object_reference(&mut self) -> Result<Rc<RefCell<Object>>, InterpreterError> {
-        let operand = self.pop_stack().unwrap();
+        let operand = self.pop().unwrap();
 
         match operand {
             Value::ObjectRef(reference) => Ok(reference),
