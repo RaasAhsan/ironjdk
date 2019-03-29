@@ -13,10 +13,6 @@ fn main() {
 
     file.read_to_end(&mut buffer).unwrap();
 
-//    for x in &buffer {
-//        println!("{:02X} = {}", x, x);
-//    }
-
     let result = reader::read_class_file(&mut buffer);
     match result {
         Ok(class_file) => {

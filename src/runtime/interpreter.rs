@@ -3,135 +3,8 @@ use class::{ConstantPool, Method};
 use runtime::class::{RuntimeMethod, RuntimeClass};
 use std::rc::Rc;
 use std::cell::RefCell;
-
-// TODO: Implement locals and stack with an array
-#[derive(Debug)]
-struct StackFrame {
-    locals: Vec<Value>,
-    stack: Vec<Value>
-}
-
-impl StackFrame {
-
-    fn pop_stack(&mut self) -> Option<Value> {
-        self.stack.pop()
-    }
-
-    fn push_stack(&mut self, operand: Value) {
-        self.stack.push(operand)
-    }
-
-    fn get_local(&self, index: usize) -> &Value {
-        &self.locals[index]
-    }
-
-    fn set_local(&mut self, index: usize, var: Value) {
-        self.locals[index] = var
-    }
-
-    // int helpers
-
-    fn push_int(&mut self, integer: i32) {
-        self.push_stack(Value::Integer(integer))
-    }
-
-    fn pop_int(&mut self) -> Result<i32, InterpreterError> {
-        let operand = self.pop_stack().unwrap();
-
-        match operand {
-            Value::Integer(i) => Ok(i),
-            _ => Err(InterpreterError::UnexpectedOperand)
-        }
-    }
-
-    fn get_int_local(&self, index: usize) -> Result<i32, InterpreterError> {
-        let operand = self.get_local(index);
-
-        match operand {
-            Value::Integer(i) => Ok(*i),
-            _ => Err(InterpreterError::UnexpectedOperand)
-        }
-    }
-
-    fn set_int_local(&mut self, index: usize, value: i32) {
-        self.set_local(index, Value::Integer(value))
-    }
-
-    // int array reference helpers
-
-    fn pop_int_array(&mut self) -> Result<Rc<RefCell<IntArray>>, InterpreterError> {
-        let operand = self.pop_stack().unwrap();
-
-        match operand {
-            Value::IntegerArrayRef(reference) => Ok(reference),
-            _ => Err(InterpreterError::UnexpectedOperand)
-        }
-    }
-
-    // object reference helpers
-
-    fn push_object_reference(&mut self, reference: Rc<RefCell<Object>>) {
-        self.push_stack(Value::ObjectRef(reference))
-    }
-
-    fn pop_object_reference(&mut self) -> Result<Rc<RefCell<Object>>, InterpreterError> {
-        let operand = self.pop_stack().unwrap();
-
-        match operand {
-            Value::ObjectRef(reference) => Ok(reference),
-            _ => Err(InterpreterError::UnexpectedOperand)
-        }
-    }
-
-    fn new_frame(max_stack: u16, max_locals: u16) -> StackFrame {
-        let locals: Vec<Value> = vec![Value::Null; max_locals as usize];
-        let stack: Vec<Value> = Vec::new();
-
-        StackFrame { locals, stack }
-    }
-
-}
-
-// A StackValue is any data type that can be stored in a variable.
-// In Java, there are two kinds of data types: primitive types and reference types.
-// Reference types are either objects or arrays.
-#[derive(Clone, Debug)]
-enum Value {
-    Long(i64),
-    Integer(i32),
-    Short(i16),
-    Byte(i8),
-    Character(char),
-    ObjectRef(Rc<RefCell<Object>>),
-    IntegerArrayRef(Rc<RefCell<IntArray>>),
-    Null
-}
-
-#[derive(Debug)]
-struct Object {
-    class: Rc<RuntimeClass>,
-    memory: Box<ObjectData>
-}
-
-#[derive(Debug)]
-struct ObjectData {
-    fields: Vec<Value>
-}
-
-#[derive(Debug)]
-struct IntArray {
-    array: Vec<i32>
-}
-
-impl IntArray {
-    fn get(&self, index: usize) -> i32 {
-        self.array[index]
-    }
-
-    fn set(&mut self, index: usize, value: i32) {
-        self.array[index] = value;
-    }
-}
+use runtime::{Value, IntArray};
+use runtime::stack::StackFrame;
 
 enum Step {
     Next,
@@ -139,7 +12,7 @@ enum Step {
 }
 
 #[derive(Debug)]
-enum InterpreterError {
+pub enum InterpreterError {
     UnhandledInstruction(Instruction),
     UnexpectedOperand,
     InvalidArrayType
@@ -458,7 +331,7 @@ fn interpret_instruction(instruction: &Instruction, stack_frame: &mut StackFrame
             // These are array type codes. We could classify them.
             match atype {
                 10 => {
-                    let array = Value::IntegerArrayRef(new_integer_array(count as usize));
+                    let array = Value::IntegerArrayRef(IntArray::new(count as usize));
                     stack_frame.push_stack(array);
                     Ok(Step::Next)
                 },
@@ -474,9 +347,4 @@ fn interpret_instruction(instruction: &Instruction, stack_frame: &mut StackFrame
         },
         x => Err(InterpreterError::UnhandledInstruction(*x))
     }
-}
-
-fn new_integer_array(size: usize) -> Rc<RefCell<IntArray>> {
-    let array = vec![0; size];
-    Rc::new(RefCell::new(IntArray { array }))
 }

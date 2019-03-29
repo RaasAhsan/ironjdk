@@ -18,8 +18,6 @@ impl RuntimeClass {
         Ok(runtime_class)
     }
 
-
-
 }
 
 struct RuntimeConstantPool {
