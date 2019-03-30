@@ -1,9 +1,9 @@
 use code::instruction::Instruction;
 use class::{ConstantPool, Method};
-use runtime::class::{RuntimeMethod, RuntimeClass, ClassTable};
+use runtime::class::{RuntimeMethod, RuntimeClass, ClassTable, FieldDescriptor};
 use std::rc::Rc;
 use std::cell::RefCell;
-use runtime::{Value, IntArray, Object, ObjectData};
+use runtime::{Value, IntArray, Object};
 use runtime::stack::StackFrame;
 
 enum Step {
@@ -99,6 +99,13 @@ fn interpret_instruction(instruction: &Instruction, stack_frame: &mut StackFrame
             let operand = stack_frame.pop().unwrap();
             stack_frame.push(operand.clone());
             stack_frame.push(operand.clone());
+            Ok(Step::Next)
+        },
+        Instruction::Getfield { index } => {
+            let object_reference = stack_frame.pop_object_reference()?;
+            let field_name = class.constant_pool.get_field_name(*index).unwrap();
+            let value = object_reference.borrow_mut().get_field(field_name);
+            stack_frame.push(value);
             Ok(Step::Next)
         },
         Instruction::Goto { branch_offset } => Ok(Step::Jump(*branch_offset)),
@@ -294,6 +301,13 @@ fn interpret_instruction(instruction: &Instruction, stack_frame: &mut StackFrame
             stack_frame.push_int(int);
             Ok(Step::Next)
         },
+        Instruction::Invokespecial { index } => {
+            // TODO: Implement
+            // TODO: Remove
+            stack_frame.pop();
+            stack_frame.pop();
+            Ok(Step::Next)
+        },
         Instruction::Imul => {
             let v2 = stack_frame.pop_int()?;
             let v1 = stack_frame.pop_int()?;
@@ -334,10 +348,11 @@ fn interpret_instruction(instruction: &Instruction, stack_frame: &mut StackFrame
         Instruction::New { index } => {
             let class_name = class.constant_pool.get_class(*index).unwrap();
             let runtime_class = class_table.get_class(&*class_name).unwrap();
+            let memory: Vec<Value> = runtime_class.default_fields();
 
             let object = Object {
                 class: runtime_class.clone(),
-                memory: Box::new(ObjectData { fields: Vec::new() })
+                memory
             };
 
             let object_reference = Value::ObjectRef(Rc::new(RefCell::new(object)));
@@ -347,7 +362,7 @@ fn interpret_instruction(instruction: &Instruction, stack_frame: &mut StackFrame
         },
         Instruction::Newarray { atype } => {
             let count = stack_frame.pop_int()?;
-            // These are array type codes. We could classify them.
+            // TODO: These are array type codes. We could classify them.
             match atype {
                 10 => {
                     let array = Value::IntegerArrayRef(IntArray::new(count as usize));
@@ -356,6 +371,15 @@ fn interpret_instruction(instruction: &Instruction, stack_frame: &mut StackFrame
                 },
                 _ => Err(InterpreterError::InvalidArrayType)
             }
+        },
+        Instruction::Putfield { index } => {
+            let value = stack_frame.pop().unwrap();
+            let object_reference = stack_frame.pop_object_reference()?;
+
+            let field_name = class.constant_pool.get_field_name(*index).unwrap();
+            object_reference.borrow_mut().put_field(field_name, value);
+
+            Ok(Step::Next)
         },
         Instruction::Sipush(value) => {
             stack_frame.push_int(*value);

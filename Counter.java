@@ -10,10 +10,8 @@ public class Counter {
 
     public static void main(String[] args) {
         Counter c = new Counter(3);
-        int a = 0;
+        c.key = 5;
 
-        for (int i = 0; i < 10; i++) {
-            a = i;
-        }
+        int a = c.key;
     }
 }

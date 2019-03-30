@@ -170,6 +170,25 @@ impl ConstantPool {
         }
     }
 
+    // TODO: just make structs for some of these
+    pub fn get_name_and_type_name(&self, index: u16) -> Result<String, String> {
+        let entry = self.get_entry(index)?;
+
+        match entry {
+            ConstantPoolEntry::NameAndType { name_index, descriptor_index} => self.get_utf8(*name_index),
+            _ => Err(String::from("Expected Class attribute"))
+        }
+    }
+
+    pub fn get_field_name(&self, index: u16) -> Result<String, String> {
+        let entry = self.get_entry(index)?;
+
+        match entry {
+            ConstantPoolEntry::Fieldref { class_index, name_and_type_index} => self.get_name_and_type_name(*name_and_type_index),
+            _ => Err(String::from("Expected Class attribute"))
+        }
+    }
+
 }
 
 #[derive(Clone, Debug)]

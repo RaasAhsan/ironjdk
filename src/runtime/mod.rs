@@ -27,12 +27,29 @@ pub enum Value {
 #[derive(Debug)]
 pub struct Object {
     class: Rc<RuntimeClass>, // or perhaps an index into a loaded class table
-    memory: Box<ObjectData>
+    memory: Vec<Value>
 }
 
-#[derive(Debug)]
-pub struct ObjectData {
-    fields: Vec<Value>
+impl Object {
+
+    pub fn put_field(&mut self, field_name: String, value: Value) {
+        let position = self.class.fields
+            .iter()
+            .position(|field| field.name == field_name)
+            .unwrap();
+
+        self.memory[position] = value;
+    }
+
+    pub fn get_field(&self, field_name: String) -> Value {
+        let position = self.class.fields
+            .iter()
+            .position(|field| field.name == field_name)
+            .unwrap();
+
+        self.memory[position].clone()
+    }
+
 }
 
 #[derive(Debug)]
