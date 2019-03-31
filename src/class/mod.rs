@@ -4,8 +4,6 @@
 pub mod reader;
 
 use code::disassembler;
-use code::instruction::Instruction;
-use runtime::class::RuntimeMethod;
 
 pub mod method {
     pub const ACC_PUBLIC: u16 = 0x0001;
@@ -158,37 +156,86 @@ impl ConstantPool {
         }
     }
 
-    pub fn get_class(&self, index: u16) -> Result<String, String> {
+    pub fn get_class_name(&self, index: u16) -> Result<String, String> {
         let entry = self.get_entry(index)?;
 
         match entry {
             ConstantPoolEntry::Class { name_index} => {
-                let name_entry = self.get_utf8(*name_index)?;
-                Ok(name_entry)
+                self.get_utf8(*name_index)
             },
             _ => Err(String::from("Expected Class attribute"))
         }
     }
 
-    // TODO: just make structs for some of these
-    pub fn get_name_and_type_name(&self, index: u16) -> Result<String, String> {
+    pub fn get_name_and_type(&self, index: u16) -> Result<NameAndType, String> {
         let entry = self.get_entry(index)?;
 
         match entry {
-            ConstantPoolEntry::NameAndType { name_index, descriptor_index} => self.get_utf8(*name_index),
+            ConstantPoolEntry::NameAndType { name_index, descriptor_index} => {
+                let name = self.get_utf8(*name_index)?;
+                let descriptor = self.get_utf8(*descriptor_index)?;
+                let name_and_type = NameAndType {
+                    name,
+                    descriptor
+                };
+                Ok(name_and_type)
+            },
             _ => Err(String::from("Expected Class attribute"))
         }
     }
 
-    pub fn get_field_name(&self, index: u16) -> Result<String, String> {
+    pub fn get_method_ref(&self, index: u16) -> Result<Methodref, String> {
         let entry = self.get_entry(index)?;
 
         match entry {
-            ConstantPoolEntry::Fieldref { class_index, name_and_type_index} => self.get_name_and_type_name(*name_and_type_index),
+            ConstantPoolEntry::Methodref { class_index, name_and_type_index} => {
+                let class_name = self.get_class_name(*class_index)?;
+                let name_and_type = self.get_name_and_type(*name_and_type_index)?;
+                let methodref = Methodref {
+                    class_name,
+                    name_and_type
+                };
+                Ok(methodref)
+            },
             _ => Err(String::from("Expected Class attribute"))
         }
     }
 
+    pub fn get_field_ref(&self, index: u16) -> Result<Fieldref, String> {
+        let entry = self.get_entry(index)?;
+
+        match entry {
+            ConstantPoolEntry::Fieldref { class_index, name_and_type_index} => {
+                let class_name = self.get_class_name(*class_index)?;
+                let name_and_type = self.get_name_and_type(*name_and_type_index)?;
+                let fieldref = Fieldref {
+                    class_name,
+                    name_and_type
+                };
+                Ok(fieldref)
+            },
+            _ => Err(String::from("Expected Class attribute"))
+        }
+    }
+
+}
+
+#[derive(Debug)]
+pub struct Fieldref {
+    pub class_name: String,
+    pub name_and_type: NameAndType
+}
+
+#[derive(Debug)]
+pub struct Methodref {
+    pub class_name: String,
+    pub name_and_type: NameAndType
+}
+
+#[derive(Debug)]
+pub struct NameAndType {
+    pub name: String,
+    pub descriptor: String
 }
 
 #[derive(Clone, Debug)]

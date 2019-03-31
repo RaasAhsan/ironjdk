@@ -90,4 +90,10 @@ impl StackFrame {
         StackFrame { locals, stack }
     }
 
+    pub fn new_frame_with_locals(max_stack: u16, max_locals: u16, mut locals: Vec<Value>) -> StackFrame {
+        let mut remaining_locals = vec![Value::Null; (max_locals as usize) - locals.len()];
+        locals.append(&mut remaining_locals);
+        StackFrame { locals, stack: Vec::new() }
+    }
+
 }

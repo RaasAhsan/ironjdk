@@ -34,6 +34,7 @@ pub struct RuntimeClass {
     pub constant_pool: ConstantPool,
     pub fields: Vec<RuntimeField>,
     pub methods: Vec<RuntimeMethod>
+//    pub static_fields: Vec<RuntimeField> // TODO: Here or somewhere else?
 }
 
 impl RuntimeClass {
@@ -51,18 +52,14 @@ impl RuntimeClass {
             .collect()
     }
 
-    pub fn find_method(&self, name: &str, access_flags: u16) -> Option<&RuntimeMethod> {
-        for method in self.methods.iter() {
-            if name == method.name && method.access_flags & access_flags == access_flags {
-                return Some(&method);
-            }
-        }
-
-        None
+    pub fn get_method(&self, name: &str) -> Option<&RuntimeMethod> {
+        self.methods
+            .iter()
+            .find(|method| method.name == name)
     }
 
     pub fn from_class_file(class_file: &ClassFile) -> Result<Rc<RuntimeClass>, String> {
-        let class_name = class_file.constant_pool.get_class(class_file.this_class)?;
+        let class_name = class_file.constant_pool.get_class_name(class_file.this_class)?;
         let cp = class_file.constant_pool.clone(); // TODO: Better representation?
 
         let fields = class_file.fields
@@ -95,29 +92,37 @@ struct RuntimeConstantPool {
 pub struct RuntimeMethod {
     pub name: String,
     pub access_flags: u16,
-    pub max_stack: u16,
-    pub max_locals: u16,
-    pub code: Vec<TaggedInstruction>
+    pub code: Code
 }
 
 impl RuntimeMethod {
 
     pub fn from_class_method(method: &Method, cp: &ConstantPool) -> Option<RuntimeMethod> {
         let name = cp.get_utf8(method.name_index).unwrap();
+        let code = RuntimeMethod::get_code(method)?;
 
+        let runtime_method = RuntimeMethod {
+            name,
+            access_flags: method.access_flags,
+            code
+        };
+
+        Some(runtime_method)
+    }
+
+    fn get_code(method: &Method) -> Option<Code> {
         for a in method.attributes.iter() {
             match a {
                 &Attribute::Code { max_stack, max_locals, ref code, .. } => {
-                    let code = disassembler::disassemble_code(&code).ok()?;
-                    let runtime_method = RuntimeMethod {
-                        name,
-                        access_flags: method.access_flags,
+                    let instructions = disassembler::disassemble_code(&code).ok()?;
+
+                    let code = Code {
                         max_stack,
                         max_locals,
-                        code
+                        instructions
                     };
 
-                    return Some(runtime_method);
+                    return Some(code);
                 },
                 _ => {}
             }
@@ -126,6 +131,13 @@ impl RuntimeMethod {
         None
     }
 
+}
+
+#[derive(Debug)]
+pub struct Code {
+    pub max_stack: u16,
+    pub max_locals: u16,
+    pub instructions: Vec<TaggedInstruction>
 }
 
 #[derive(Debug)]

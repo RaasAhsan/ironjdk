@@ -1,6 +1,5 @@
 use code::instruction::Instruction;
-use class::{ConstantPool, Method};
-use runtime::class::{RuntimeMethod, RuntimeClass, ClassTable, FieldDescriptor};
+use runtime::class::{RuntimeMethod, RuntimeClass, ClassTable};
 use std::rc::Rc;
 use std::cell::RefCell;
 use runtime::{Value, IntArray, Object};
@@ -8,7 +7,8 @@ use runtime::stack::StackFrame;
 
 enum Step {
     Next,
-    Jump(i16)
+    Jump(i16),
+    Return(Value)
 }
 
 #[derive(Debug)]
@@ -18,21 +18,31 @@ pub enum InterpreterError {
     InvalidArrayType
 }
 
-pub fn interpret(method: &RuntimeMethod, class: &Rc<RuntimeClass>, class_table: &ClassTable) {
-//    let mut stack: Vec<StackFrame> = Vec::new();
-    let mut stack_frame = StackFrame::new_frame(method.max_stack, method.max_locals);
+pub fn invoke_static(arguments: Vec<Value>, method: &RuntimeMethod, class: &Rc<RuntimeClass>, class_table: &ClassTable) -> Option<Value> {
+    let mut locals = arguments.clone();
+    let mut stack_frame = StackFrame::new_frame_with_locals(method.code.max_stack, method.code.max_locals, arguments);
+    interpret(&mut stack_frame, method, class, class_table)
+}
 
-    let end_index: u16 = method.code.len() as u16 - 1;
+pub fn invoke_virtual(this: Rc<RefCell<Object>>, method: &RuntimeMethod, arguments: Vec<Value>, class: &Rc<RuntimeClass>, class_table: &ClassTable) -> Option<Value> {
+    let mut locals = arguments.clone();
+    locals.insert(0, Value::ObjectRef(this));
+    let mut stack_frame = StackFrame::new_frame_with_locals(method.code.max_stack, method.code.max_locals, locals);
+    interpret(&mut stack_frame, method, class, class_table)
+}
+
+pub fn interpret(stack_frame: &mut StackFrame, method: &RuntimeMethod, class: &Rc<RuntimeClass>, class_table: &ClassTable) -> Option<Value> {
+    let end_index: u16 = method.code.instructions.len() as u16 - 1;
     let mut current_index: u16 = 0;
     let mut done = false;
 
     while done == false {
-        let tagged_instruction = method.code.get(current_index as usize).unwrap();
+        let tagged_instruction = method.code.instructions.get(current_index as usize).unwrap();
         println!("{}: {:?}", tagged_instruction.index, tagged_instruction.instruction);
 
         let result = interpret_instruction(
             &tagged_instruction.instruction,
-            &mut stack_frame,
+            stack_frame,
             class,
             class_table
         );
@@ -50,20 +60,29 @@ pub fn interpret(method: &RuntimeMethod, class: &Rc<RuntimeClass>, class_table: 
                     Step::Jump(offset) => {
                         let current_code_index = tagged_instruction.index;
                         let branch_code_index = ((current_code_index as i16) + offset) as u16;
-                        let next_index = method.code.iter().position(|&t| t.index == branch_code_index).unwrap() as u16;
+                        let next_index = method.code.instructions
+                            .iter()
+                            .position(|&t| t.index == branch_code_index)
+                            .unwrap() as u16;
                         current_index = next_index;
+                    },
+                    Step::Return(value) => {
+                        return Some(value);
                     }
                 }
             },
             Err(e) => {
                 println!("{:?}", e);
-                return
+                return None; // TODO: Fix
             }
         }
     }
 
     println!("{:?}", stack_frame);
     println!("{:?}", std::mem::size_of::<Rc<RefCell<Vec<i32>>>>());
+
+    // TODO: This line of code should never be reached, so we should return a proper error here.
+    return None;
 }
 
 fn interpret_instruction(instruction: &Instruction, stack_frame: &mut StackFrame, class: &Rc<RuntimeClass>, class_table: &ClassTable) -> Result<Step, InterpreterError> {
@@ -76,6 +95,11 @@ fn interpret_instruction(instruction: &Instruction, stack_frame: &mut StackFrame
             // It's not necessary to type check perhaps?
             // The typed instructions should really be used for knowing how many bytes to read/write.
             let operand = stack_frame.get_local(*index as usize).clone();
+            stack_frame.push(operand);
+            Ok(Step::Next)
+        },
+        Instruction::Aload0 => {
+            let operand = stack_frame.get_local(0).clone();
             stack_frame.push(operand);
             Ok(Step::Next)
         },
@@ -96,6 +120,8 @@ fn interpret_instruction(instruction: &Instruction, stack_frame: &mut StackFrame
         },
         Instruction::Dup => {
             // TODO: Do we need to clone twice here, or is once sufficient?
+            // What ends up happening is that we clone it twice and move those out.
+            // The original one is freed when we exit the scope.
             let operand = stack_frame.pop().unwrap();
             stack_frame.push(operand.clone());
             stack_frame.push(operand.clone());
@@ -103,8 +129,8 @@ fn interpret_instruction(instruction: &Instruction, stack_frame: &mut StackFrame
         },
         Instruction::Getfield { index } => {
             let object_reference = stack_frame.pop_object_reference()?;
-            let field_name = class.constant_pool.get_field_name(*index).unwrap();
-            let value = object_reference.borrow_mut().get_field(field_name);
+            let field_ref = class.constant_pool.get_field_ref(*index).unwrap();
+            let value = object_reference.borrow_mut().get_field(field_ref.name_and_type.name);
             stack_frame.push(value);
             Ok(Step::Next)
         },
@@ -302,10 +328,29 @@ fn interpret_instruction(instruction: &Instruction, stack_frame: &mut StackFrame
             Ok(Step::Next)
         },
         Instruction::Invokespecial { index } => {
-            // TODO: Implement
+            // TODO: Implement, will need to read method descriptor to determine how many operands to pull off?
             // TODO: Remove
             stack_frame.pop();
             stack_frame.pop();
+            Ok(Step::Next)
+        },
+        Instruction::Invokevirtual { index } => {
+            let method_ref = class.constant_pool.get_method_ref(*index).unwrap();
+            let invoked_class = class_table.get_class(method_ref.class_name.as_str()).unwrap();
+            // TODO: Shouldn't need to specify access flags. Instead the caller will be required to validate.
+            // TODO: Verify access flags
+            let method = invoked_class.get_method(method_ref.name_and_type.name.as_str()).unwrap();
+            println!("{:?}", invoked_class);
+            println!("{:?}", method);
+
+            let argument = stack_frame.pop().unwrap();
+            let object = stack_frame.pop_object_reference()?;
+            let arguments = vec![argument];
+
+            // TODO: We will need to read method descriptor to determine how many operands to pull off
+            let return_value = invoke_virtual(object, method, arguments, invoked_class, class_table).unwrap();
+            stack_frame.push(return_value);
+
             Ok(Step::Next)
         },
         Instruction::Imul => {
@@ -313,6 +358,11 @@ fn interpret_instruction(instruction: &Instruction, stack_frame: &mut StackFrame
             let v1 = stack_frame.pop_int()?;
             stack_frame.push_int(v1 * v2);
             Ok(Step::Next)
+        },
+        Instruction::Ireturn => {
+            // TODO: We should probably validate the operand type.
+            let value = stack_frame.pop().unwrap();
+            Ok(Step::Return(value))
         },
         Instruction::Istore(index) => {
             let int = stack_frame.pop_int()?;
@@ -346,7 +396,7 @@ fn interpret_instruction(instruction: &Instruction, stack_frame: &mut StackFrame
             Ok(Step::Next)
         },
         Instruction::New { index } => {
-            let class_name = class.constant_pool.get_class(*index).unwrap();
+            let class_name = class.constant_pool.get_class_name(*index).unwrap();
             let runtime_class = class_table.get_class(&*class_name).unwrap();
             let memory: Vec<Value> = runtime_class.default_fields();
 
@@ -372,13 +422,15 @@ fn interpret_instruction(instruction: &Instruction, stack_frame: &mut StackFrame
                 _ => Err(InterpreterError::InvalidArrayType)
             }
         },
+        Instruction::Pop => {
+            stack_frame.pop();
+            Ok(Step::Next)
+        },
         Instruction::Putfield { index } => {
             let value = stack_frame.pop().unwrap();
             let object_reference = stack_frame.pop_object_reference()?;
-
-            let field_name = class.constant_pool.get_field_name(*index).unwrap();
-            object_reference.borrow_mut().put_field(field_name, value);
-
+            let field_ref = class.constant_pool.get_field_ref(*index).unwrap();
+            object_reference.borrow_mut().put_field(field_ref.name_and_type.name, value);
             Ok(Step::Next)
         },
         Instruction::Sipush(value) => {

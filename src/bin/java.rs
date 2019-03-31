@@ -31,8 +31,12 @@ fn main() {
 
     println!("Running class file {}", runtime_class.class_name);
 
-    let main_method = runtime_class.find_method("main", method::ACC_PUBLIC & method::ACC_STATIC).unwrap();
-    runtime::interpreter::interpret(&main_method, &runtime_class, &class_table);
+    let main_method = runtime_class.get_method("main").unwrap();
+    let expected_access_flags = method::ACC_PUBLIC | method::ACC_STATIC;
+    if main_method.access_flags & expected_access_flags == expected_access_flags {
+        let arguments = Vec::new(); // String[]
+        runtime::interpreter::invoke_static(arguments, &main_method, &runtime_class, &class_table);
+    }
 
     ()
 }
