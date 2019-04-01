@@ -4,7 +4,7 @@ use std::rc::Rc;
 use std::cell::RefCell;
 use runtime::{Value, IntArray, Object};
 use runtime::stack::StackFrame;
-use runtime::class::method::RuntimeMethod;
+use runtime::class::method::{RuntimeMethod, MethodDescriptor};
 
 enum Step {
     Next,
@@ -356,12 +356,14 @@ fn interpret_instruction(instruction: &Instruction, stack_frame: &mut StackFrame
             // TODO: Verify access flags
             // Method descriptors are described in JVMS $4.3.3
             let method = invoked_class.get_method(method_ref.name_and_type.name.as_str()).unwrap();
-            let argument = stack_frame.pop().unwrap();
-            let object = stack_frame.pop_object_reference()?;
-            let arguments = vec![argument];
+            let method_descriptor = MethodDescriptor::parse(method_ref.name_and_type.descriptor.as_str()).unwrap();
 
-            // TODO: We will need to read method descriptor to determine how many operands to pull off
+            let mut arguments = stack_frame.pop_many(method_descriptor.parameters_length()).unwrap();
+            arguments.reverse();
+            let object = stack_frame.pop_object_reference()?;
+
             let return_value = invoke_virtual_method(object, method, arguments, invoked_class, class_table).unwrap();
+            // TODO: Only if there is a return value
             stack_frame.push(return_value);
 
             Ok(Step::Next)

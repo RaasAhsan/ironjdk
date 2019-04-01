@@ -17,6 +17,17 @@ impl StackFrame {
         self.stack.pop()
     }
 
+    pub fn pop_many(&mut self, count: usize) -> Option<Vec<Value>> {
+        let mut values: Vec<Value> = Vec::new();
+
+        for i in 0..count {
+            let value = self.pop()?;
+            values.push(value);
+        }
+
+        Some(values)
+    }
+
     pub fn push(&mut self, operand: Value) {
         self.stack.push(operand)
     }

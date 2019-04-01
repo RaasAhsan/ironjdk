@@ -8,8 +8,8 @@ public class Counter {
         this.right = null;
     }
 
-    public int set(int a) {
-        this.key = 3;
+    public int set(int a, int b) {
+        this.key = a + b;
 
         return this.key;
     }
@@ -20,6 +20,6 @@ public class Counter {
 
         int a = c.key;
 
-        c.set(4);
+        c.set(4, 9);
     }
 }
