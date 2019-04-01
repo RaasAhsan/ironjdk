@@ -118,14 +118,44 @@ fn interpret_instruction(instruction: &Instruction, stack_frame: &mut StackFrame
             stack_frame.push(operand);
             Ok(Step::Next)
         },
+        Instruction::Aload0 => {
+            let operand = stack_frame.get_local(0).clone();
+            stack_frame.push(operand);
+            Ok(Step::Next)
+        },
         Instruction::Aload1 => {
             let operand = stack_frame.get_local(1).clone();
             stack_frame.push(operand);
             Ok(Step::Next)
         },
+        Instruction::Aload2 => {
+            let operand = stack_frame.get_local(2).clone();
+            stack_frame.push(operand);
+            Ok(Step::Next)
+        },
+        Instruction::Aload3 => {
+            let operand = stack_frame.get_local(3).clone();
+            stack_frame.push(operand);
+            Ok(Step::Next)
+        },
+        Instruction::Astore0 => {
+            let operand = stack_frame.pop().unwrap();
+            stack_frame.set_local(0, operand);
+            Ok(Step::Next)
+        },
         Instruction::Astore1 => {
             let operand = stack_frame.pop().unwrap();
             stack_frame.set_local(1, operand);
+            Ok(Step::Next)
+        },
+        Instruction::Astore2 => {
+            let operand = stack_frame.pop().unwrap();
+            stack_frame.set_local(2, operand);
+            Ok(Step::Next)
+        },
+        Instruction::Astore3 => {
+            let operand = stack_frame.pop().unwrap();
+            stack_frame.set_local(3, operand);
             Ok(Step::Next)
         },
         Instruction::Bipush { byte } => {
@@ -352,9 +382,9 @@ fn interpret_instruction(instruction: &Instruction, stack_frame: &mut StackFrame
         Instruction::Invokevirtual { index } => {
             let method_ref = class.constant_pool.get_method_ref(*index).unwrap();
             let invoked_class = class_table.get_class(method_ref.class_name.as_str()).unwrap();
-            // TODO: Shouldn't need to specify access flags. Instead the caller will be required to validate.
+
             // TODO: Verify access flags
-            // Method descriptors are described in JVMS $4.3.3
+
             let method = invoked_class.get_method(method_ref.name_and_type.name.as_str()).unwrap();
             let method_descriptor = MethodDescriptor::parse(method_ref.name_and_type.descriptor.as_str()).unwrap();
 

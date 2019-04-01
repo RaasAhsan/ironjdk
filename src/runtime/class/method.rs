@@ -54,6 +54,7 @@ pub struct Code {
     pub instructions: Vec<TaggedInstruction>
 }
 
+// Method descriptors are described in JVMS $4.3.3
 #[derive(Debug)]
 pub struct MethodDescriptor {
     parameter_descriptors: Vec<FieldType>,
@@ -91,7 +92,7 @@ impl MethodDescriptor {
                 _ => {
                     if remaining.starts_with("L") {
                         let end = remaining.find(';').unwrap();
-                        let class_name = String::from(&remaining[1..(end + 1)]);
+                        let class_name = String::from(&remaining[1..end]);
                         Lexeme::Class(class_name)
                     } else {
                         panic!("invalid method descriptor found");
