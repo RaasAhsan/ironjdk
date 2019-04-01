@@ -8,6 +8,10 @@ public class Counter {
         this.right = null;
     }
 
+    public void it(Counter a) {
+        this.key = a.key;
+    }
+
     public int set(int a, int b) {
         this.key = a + b;
 
@@ -16,10 +20,12 @@ public class Counter {
 
     public static void main(String[] args) {
         Counter c = new Counter(3);
+        Counter d = new Counter(3);
         c.key = 5;
+        d.key = 2;
 
-        int a = c.key;
+        c.it(d);
 
-        c.set(4, 9);
+        d.key = 7;
     }
 }
