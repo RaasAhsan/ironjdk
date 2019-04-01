@@ -44,7 +44,7 @@ trait Decoder : Sized {
     fn decode_many(buffer: &mut Vec<u8>, length: usize, cp: &ConstantPool) -> Result<Vec<Self>, ClassReaderError> {
         let mut entries: Vec<Self> = Vec::new();
 
-        for index in 0..length {
+        for _index in 0..length {
             let entry = Decoder::decode(buffer, cp)?;
             entries.push(entry)
         }
@@ -500,7 +500,7 @@ fn read_u16(buffer: &mut Vec<u8>) -> Result<u16, ClassReaderError> {
 fn read_u16_array(buffer: &mut Vec<u8>, length: u16) -> Result<Vec<u16>, ClassReaderError> {
     let mut entries: Vec<u16> = Vec::new();
 
-    for index in 0..length {
+    for _index in 0..length {
         let entry = read_u16(buffer)?;
         entries.push(entry);
     }

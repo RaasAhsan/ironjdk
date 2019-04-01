@@ -1,14 +1,16 @@
 use code::instruction::Instruction;
-use runtime::class::{RuntimeMethod, RuntimeClass, ClassTable};
+use runtime::class::{RuntimeClass, ClassTable};
 use std::rc::Rc;
 use std::cell::RefCell;
 use runtime::{Value, IntArray, Object};
 use runtime::stack::StackFrame;
+use runtime::class::method::RuntimeMethod;
 
 enum Step {
     Next,
     Jump(i16),
-    Return(Value)
+    Return(Value),
+    Throw(Value)
 }
 
 #[derive(Debug)]
@@ -18,20 +20,30 @@ pub enum InterpreterError {
     InvalidArrayType
 }
 
-pub fn invoke_static(arguments: Vec<Value>, method: &RuntimeMethod, class: &Rc<RuntimeClass>, class_table: &ClassTable) -> Option<Value> {
+pub fn invoke_static_method(arguments: Vec<Value>,
+                            method: &RuntimeMethod,
+                            class: &Rc<RuntimeClass>,
+                            class_table: &ClassTable) -> Option<Value> {
     let mut locals = arguments.clone();
     let mut stack_frame = StackFrame::new_frame_with_locals(method.code.max_stack, method.code.max_locals, arguments);
     interpret(&mut stack_frame, method, class, class_table)
 }
 
-pub fn invoke_virtual(this: Rc<RefCell<Object>>, method: &RuntimeMethod, arguments: Vec<Value>, class: &Rc<RuntimeClass>, class_table: &ClassTable) -> Option<Value> {
+pub fn invoke_virtual_method(this: Rc<RefCell<Object>>,
+                             method: &RuntimeMethod,
+                             arguments: Vec<Value>,
+                             class: &Rc<RuntimeClass>,
+                             class_table: &ClassTable) -> Option<Value> {
     let mut locals = arguments.clone();
     locals.insert(0, Value::ObjectRef(this));
     let mut stack_frame = StackFrame::new_frame_with_locals(method.code.max_stack, method.code.max_locals, locals);
     interpret(&mut stack_frame, method, class, class_table)
 }
 
-pub fn interpret(stack_frame: &mut StackFrame, method: &RuntimeMethod, class: &Rc<RuntimeClass>, class_table: &ClassTable) -> Option<Value> {
+pub fn interpret(stack_frame: &mut StackFrame,
+                 method: &RuntimeMethod,
+                 class: &Rc<RuntimeClass>,
+                 class_table: &ClassTable) -> Option<Value> {
     let end_index: u16 = method.code.instructions.len() as u16 - 1;
     let mut current_index: u16 = 0;
     let mut done = false;
@@ -68,6 +80,9 @@ pub fn interpret(stack_frame: &mut StackFrame, method: &RuntimeMethod, class: &R
                     },
                     Step::Return(value) => {
                         return Some(value);
+                    },
+                    Step::Throw(value) => {
+                        // TODO: Search in exception handler table.
                     }
                 }
             },
@@ -273,7 +288,7 @@ fn interpret_instruction(instruction: &Instruction, stack_frame: &mut StackFrame
                 Ok(Step::Next)
             }
         },
-        Instruction::Ifeq { branch_offset } => {
+        Instruction::Ifle { branch_offset } => {
             let value = stack_frame.pop_int()?;
             if value <= 0 {
                 Ok(Step::Jump(*branch_offset))
@@ -339,16 +354,14 @@ fn interpret_instruction(instruction: &Instruction, stack_frame: &mut StackFrame
             let invoked_class = class_table.get_class(method_ref.class_name.as_str()).unwrap();
             // TODO: Shouldn't need to specify access flags. Instead the caller will be required to validate.
             // TODO: Verify access flags
+            // Method descriptors are described in JVMS $4.3.3
             let method = invoked_class.get_method(method_ref.name_and_type.name.as_str()).unwrap();
-            println!("{:?}", invoked_class);
-            println!("{:?}", method);
-
             let argument = stack_frame.pop().unwrap();
             let object = stack_frame.pop_object_reference()?;
             let arguments = vec![argument];
 
             // TODO: We will need to read method descriptor to determine how many operands to pull off
-            let return_value = invoke_virtual(object, method, arguments, invoked_class, class_table).unwrap();
+            let return_value = invoke_virtual_method(object, method, arguments, invoked_class, class_table).unwrap();
             stack_frame.push(return_value);
 
             Ok(Step::Next)

@@ -35,7 +35,7 @@ fn main() {
     let expected_access_flags = method::ACC_PUBLIC | method::ACC_STATIC;
     if main_method.access_flags & expected_access_flags == expected_access_flags {
         let arguments = Vec::new(); // String[]
-        runtime::interpreter::invoke_static(arguments, &main_method, &runtime_class, &class_table);
+        runtime::interpreter::invoke_static_method(arguments, &main_method, &runtime_class, &class_table);
     }
 
     ()
