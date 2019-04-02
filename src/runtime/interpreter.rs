@@ -561,6 +561,38 @@ mod tests {
     }
 
     #[test]
+    fn iconst_0() {
+        let instruction = Instruction::Iconst0;
+        let mut stack_frame = StackFrame {
+            locals: Vec::new(),
+            stack: Vec::new()
+        };
+        let class = test_class();
+        let class_table = ClassTable::new();
+
+        let step = interpret_instruction(&instruction, &mut stack_frame, &class, &class_table).unwrap();
+        let result = stack_frame.pop_int().unwrap();
+
+        assert_eq!(result, 0);
+    }
+
+    #[test]
+    fn imul() {
+        let instruction = Instruction::Imul;
+        let mut stack_frame = StackFrame {
+            locals: Vec::new(),
+            stack: vec!(Value::Integer(10), Value::Integer(8))
+        };
+        let class = test_class();
+        let class_table = ClassTable::new();
+
+        let step = interpret_instruction(&instruction, &mut stack_frame, &class, &class_table).unwrap();
+        let result = stack_frame.pop_int().unwrap();
+
+        assert_eq!(result, 80);
+    }
+
+    #[test]
     fn isub() {
         let instruction = Instruction::Isub;
         let mut stack_frame = StackFrame {
