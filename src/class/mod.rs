@@ -129,6 +129,12 @@ pub struct ConstantPool {
 
 impl ConstantPool {
 
+    pub fn new() -> ConstantPool {
+        ConstantPool {
+            entries: Vec::new()
+        }
+    }
+
     // Logical index
     pub fn get(&self, index: u16) -> Option<&ConstantPoolEntry> {
         self.entries.get((index - 1) as usize)

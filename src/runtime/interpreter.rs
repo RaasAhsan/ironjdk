@@ -10,14 +10,14 @@ enum Step {
     Next,
     Jump(i16),
     Return(Value),
-    ReturnVoid,
-    Throw(Value)
+    ReturnVoid, // TODO: Could unify with Return variant
+    Exception(Value)
 }
 
 pub enum InvokeResult {
     Void,
     Value(Value),
-    Exception
+    Exception(Value)
 }
 
 #[derive(Debug)]
@@ -86,12 +86,16 @@ pub fn interpret(stack_frame: &mut StackFrame,
                         current_index = next_index;
                     },
                     Step::Return(value) => {
+                        println!("{:?}", stack_frame);
+                        println!("{:?}", std::mem::size_of::<Rc<RefCell<Vec<i32>>>>());
                         return Some(InvokeResult::Value(value));
                     },
                     Step::ReturnVoid => {
+                        println!("{:?}", stack_frame);
+                        println!("{:?}", std::mem::size_of::<Rc<RefCell<Vec<i32>>>>());
                         return Some(InvokeResult::Void);
                     },
-                    Step::Throw(value) => {
+                    Step::Exception(value) => {
                         // TODO: Search in exception handler table.
                     }
                 }
@@ -103,14 +107,14 @@ pub fn interpret(stack_frame: &mut StackFrame,
         }
     }
 
-    println!("{:?}", stack_frame);
-    println!("{:?}", std::mem::size_of::<Rc<RefCell<Vec<i32>>>>());
-
     // TODO: This line of code should never be reached, so we should return a proper error here.
     return None;
 }
 
-fn interpret_instruction(instruction: &Instruction, stack_frame: &mut StackFrame, class: &Rc<RuntimeClass>, class_table: &ClassTable) -> Result<Step, InterpreterError> {
+fn interpret_instruction(instruction: &Instruction,
+                         stack_frame: &mut StackFrame,
+                         class: &Rc<RuntimeClass>,
+                         class_table: &ClassTable) -> Result<Step, InterpreterError> {
     match instruction {
         Instruction::AconstNull => {
             stack_frame.push(Value::Null);
@@ -189,7 +193,9 @@ fn interpret_instruction(instruction: &Instruction, stack_frame: &mut StackFrame
             stack_frame.push(value);
             Ok(Step::Next)
         },
-        Instruction::Goto { branch_offset } => Ok(Step::Jump(*branch_offset)),
+        Instruction::Goto { branch_offset } => {
+            Ok(Step::Jump(*branch_offset))
+        },
         Instruction::Iadd => {
             let v2 = stack_frame.pop_int()?;
             let v1 = stack_frame.pop_int()?;
@@ -233,6 +239,24 @@ fn interpret_instruction(instruction: &Instruction, stack_frame: &mut StackFrame
         Instruction::Iconst5 => {
             stack_frame.push_int(5);
             Ok(Step::Next)
+        },
+        Instruction::IfAcmpeq { branch_offset } => {
+            let value2 = stack_frame.pop_object_reference()?;
+            let value1 = stack_frame.pop_object_reference()?;
+            if Rc::ptr_eq(&value1, &value2) {
+                Ok(Step::Jump(*branch_offset))
+            } else {
+                Ok(Step::Next)
+            }
+        },
+        Instruction::IfAcmpne { branch_offset } => {
+            let value2 = stack_frame.pop_object_reference()?;
+            let value1 = stack_frame.pop_object_reference()?;
+            if Rc::ptr_eq(&value1, &value2) {
+                Ok(Step::Next)
+            } else {
+                Ok(Step::Jump(*branch_offset))
+            }
         },
         Instruction::IfIcmpeq { branch_offset } => {
             let value2 = stack_frame.pop_int()?;
@@ -411,8 +435,8 @@ fn interpret_instruction(instruction: &Instruction, stack_frame: &mut StackFrame
                 InvokeResult::Void => {
                     Ok(Step::Next)
                 },
-                InvokeResult::Exception => {
-                    Ok(Step::Next)
+                InvokeResult::Exception(value) => {
+                    Ok(Step::Exception(value))
                 }
             }
         },
@@ -500,9 +524,65 @@ fn interpret_instruction(instruction: &Instruction, stack_frame: &mut StackFrame
             stack_frame.push_int(*value);
             Ok(Step::Next)
         },
+        Instruction::Swap => {
+            let value1 = stack_frame.pop().unwrap();
+            let value2 = stack_frame.pop().unwrap();
+            stack_frame.push(value2);
+            stack_frame.push(value1);
+            Ok(Step::Next)
+        },
         Instruction::Return => {
             Ok(Step::ReturnVoid)
         },
         x => Err(InterpreterError::UnhandledInstruction(*x))
     }
+}
+
+#[cfg(test)]
+mod tests {
+
+    use super::*;
+    use class::ConstantPool;
+
+    #[test]
+    fn iadd() {
+        let instruction = Instruction::Iadd;
+        let mut stack_frame = StackFrame {
+            locals: Vec::new(),
+            stack: vec!(Value::Integer(8), Value::Integer(10))
+        };
+        let class = test_class();
+        let class_table = ClassTable::new();
+
+        let step = interpret_instruction(&instruction, &mut stack_frame, &class, &class_table).unwrap();
+        let result = stack_frame.pop_int().unwrap();
+
+        assert_eq!(result, 18);
+    }
+
+    #[test]
+    fn isub() {
+        let instruction = Instruction::Isub;
+        let mut stack_frame = StackFrame {
+            locals: Vec::new(),
+            stack: vec!(Value::Integer(10), Value::Integer(8))
+        };
+        let class = test_class();
+        let class_table = ClassTable::new();
+
+        let step = interpret_instruction(&instruction, &mut stack_frame, &class, &class_table).unwrap();
+        let result = stack_frame.pop_int().unwrap();
+
+        assert_eq!(result, 2);
+    }
+
+    fn test_class() -> Rc<RuntimeClass> {
+        Rc::new(RuntimeClass {
+            class_name: String::from("Test"),
+            constant_pool: ConstantPool::new(),
+            fields: Vec::new(),
+            methods: Vec::new()
+        })
+    }
+
 }

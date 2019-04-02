@@ -6,8 +6,8 @@ use runtime::interpreter::InterpreterError;
 // TODO: Implement locals and stack with an array
 #[derive(Debug)]
 pub struct StackFrame {
-    locals: Vec<Value>,
-    stack: Vec<Value>
+    pub locals: Vec<Value>,
+    pub stack: Vec<Value>
 }
 
 // TODO: Don't use InterpreterError

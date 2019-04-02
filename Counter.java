@@ -21,11 +21,7 @@ public class Counter {
     public static void main(String[] args) {
         Counter c = new Counter(3);
         Counter d = new Counter(3);
-        c.key = 5;
-        d.key = 2;
 
-        c.it(d);
-
-        d.key = 7;
+        boolean a = c == null;
     }
 }
